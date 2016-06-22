@@ -2,7 +2,7 @@
 name = "rustworld"
 version = "0.1.0"
 authors = ["jbethel"]
-build = "build.sh"
 
 [dependencies]
 tcod = "0.9"
+rand = "0.3.9"
