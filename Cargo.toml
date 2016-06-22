@@ -1,5 +1,5 @@
 [package]
-name = "realworld"
+name = "rustworld"
 version = "0.1.0"
 authors = ["jbethel"]
 build = "build.sh"
