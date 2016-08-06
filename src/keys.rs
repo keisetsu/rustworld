@@ -1,4 +1,6 @@
+extern crate tcod
 
+use tcod::input::{Key, KeyCode};
 
 fn handle_keys(key: Key, tcod: &mut Tcod, game: &mut Game,
                objects: &mut Vec<Object>) -> PlayerAction {
