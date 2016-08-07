@@ -1,11 +1,23 @@
-extern crate tcod
+extern crate tcod;
 
 use tcod::input::{Key, KeyCode};
 
-fn handle_keys(key: Key, tcod: &mut Tcod, game: &mut Game,
-               objects: &mut Vec<Object>) -> PlayerAction {
-    use PlayerAction::*;
+use game::{
+    self,
+    Game,
+};
 
+use game::PlayerAction;
+use game::PlayerAction::*;
+
+use ui::{Ui, inventory_menu};
+
+use consts;
+use object::Object;
+use object::actor;
+
+pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
+               objects: &mut Vec<Object>) -> PlayerAction {
     let player_alive = objects[consts::PLAYER].alive;
     match (key, player_alive) {
         // Exit: Ctrl+q
@@ -20,7 +32,7 @@ fn handle_keys(key: Key, tcod: &mut Tcod, game: &mut Game,
         (Key { code: KeyCode::Up, .. }, true) |
         (Key { code: KeyCode::NumPad8, ..}, true) |
         (Key { printable: 'k', ..}, true) => {
-            player_move_or_attack(0, -1, game, objects);
+            actor::player_move_or_attack(0, -1, game, objects);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -29,7 +41,7 @@ fn handle_keys(key: Key, tcod: &mut Tcod, game: &mut Game,
         (Key { code: KeyCode::Down, .. }, true) |
         (Key { code: KeyCode::NumPad2, ..}, true) |
         (Key { printable: 'j', ..}, true) => {
-            player_move_or_attack(0, 1, game, objects);
+            actor::player_move_or_attack(0, 1, game, objects);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -38,7 +50,7 @@ fn handle_keys(key: Key, tcod: &mut Tcod, game: &mut Game,
         (Key { code: KeyCode::Left, .. }, true) |
         (Key { code: KeyCode::NumPad4, ..}, true) |
         (Key { printable: 'h', ..}, true) => {
-            player_move_or_attack(-1, 0, game, objects);
+            actor::player_move_or_attack(-1, 0, game, objects);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -47,7 +59,7 @@ fn handle_keys(key: Key, tcod: &mut Tcod, game: &mut Game,
         (Key { code: KeyCode::Right, .. }, true) |
         (Key { code: KeyCode::NumPad6, ..}, true) |
         (Key { printable: 'l', ..}, true) => {
-            player_move_or_attack(1, 0, game, objects);
+            actor::player_move_or_attack(1, 0, game, objects);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -56,7 +68,7 @@ fn handle_keys(key: Key, tcod: &mut Tcod, game: &mut Game,
         (Key { code: KeyCode::Home, .. }, true) |
         (Key { code: KeyCode::NumPad7, ..}, true) |
         (Key { printable: 'y', ..}, true) => {
-            player_move_or_attack(-1, -1, game, objects);
+            actor::player_move_or_attack(-1, -1, game, objects);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -65,7 +77,7 @@ fn handle_keys(key: Key, tcod: &mut Tcod, game: &mut Game,
         (Key { code: KeyCode::PageUp, .. }, true) |
         (Key { code: KeyCode::NumPad9, ..}, true) |
         (Key { printable: 'u', ..}, true) => {
-            player_move_or_attack(1, -1, game, objects);
+            actor::player_move_or_attack(1, -1, game, objects);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -74,7 +86,7 @@ fn handle_keys(key: Key, tcod: &mut Tcod, game: &mut Game,
         (Key { code: KeyCode::End, .. }, true) |
         (Key { code: KeyCode::NumPad1, ..}, true) |
         (Key { printable: 'b', ..}, true) => {
-            player_move_or_attack(-1, 1, game, objects);
+            actor::player_move_or_attack(-1, 1, game, objects);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -83,7 +95,7 @@ fn handle_keys(key: Key, tcod: &mut Tcod, game: &mut Game,
         (Key { code: KeyCode::PageDown, .. }, true) |
         (Key { code: KeyCode::NumPad3, ..}, true) |
         (Key { printable: 'n', ..}, true) => {
-            player_move_or_attack(1, 1, game, objects);
+            actor::player_move_or_attack(1, 1, game, objects);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -107,7 +119,7 @@ fn handle_keys(key: Key, tcod: &mut Tcod, game: &mut Game,
                         object.item.is_some()
                 });
             if let Some(item_id) = item_id {
-                pick_item_up(item_id, game, objects);
+                actor::pick_item_up(item_id, game, objects);
             }
             DidntTakeTurn
         }
@@ -116,9 +128,9 @@ fn handle_keys(key: Key, tcod: &mut Tcod, game: &mut Game,
                 &mut game.inventory,
                 "Press the key next to an item to use it, \
                  or any other to cancel.\n",
-                &mut tcod.root);
+                &mut game_ui.root);
             if let Some(inventory_index) = inventory_index {
-                use_item(tcod, game, inventory_index, objects);
+                actor::use_item(game_ui, game, inventory_index, objects);
             }
             DidntTakeTurn
         }
@@ -127,9 +139,9 @@ fn handle_keys(key: Key, tcod: &mut Tcod, game: &mut Game,
                 &mut game.inventory,
                 "Press the key next to an item to drop it, \
                  or any other to cancel.\n",
-                &mut tcod.root);
+                &mut game_ui.root);
             if let Some(inventory_index) = inventory_index {
-                drop_item(inventory_index, game, objects);
+                actor::drop_item(inventory_index, game, objects);
             }
             DidntTakeTurn
         }
@@ -140,7 +152,7 @@ fn handle_keys(key: Key, tcod: &mut Tcod, game: &mut Game,
                         object.name == "stairs up"
                 });
             if player_on_stairs {
-                next_level(tcod, objects, game);
+                game::next_level(game_ui, objects, game);
             }
             DidntTakeTurn
         }

@@ -1,6 +1,6 @@
-extern crate rustc_serializable
+extern crate rustc_serialize;
 
-extern crate tcod
+extern crate tcod;
 
 use tcod::colors::{self, Color};
 use tcod::console::{
@@ -8,20 +8,24 @@ use tcod::console::{
     Console
 };
 
-mod log
+pub mod actor;
+pub mod item;
+
+use ai::Ai;
+use log::{self, MessageLog};
 
 #[derive(Debug, RustcEncodable, RustcDecodable)]
-struct Object {
-    x: i32,
-    y: i32,
-    symbol: char,
-    color: Color,
-    name: String,
-    blocks: bool,
-    alive: bool,
-    fighter: Option<Fighter>,
-    ai: Option<Ai>,
-    item: Option<Item>,
+pub struct Object {
+    pub x: i32,
+    pub y: i32,
+    pub symbol: char,
+    pub color: Color,
+    pub name: String,
+    pub blocks: bool,
+    pub alive: bool,
+    pub fighter: Option<actor::Fighter>,
+    pub ai: Option<Ai>,
+    pub item: Option<item::Item>,
 }
 
 impl Object {

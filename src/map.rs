@@ -1,7 +1,18 @@
 extern crate rustc_serialize;
 
-mod consts
+extern crate rand;
+use rand::Rng;
 
+extern crate tcod;
+use tcod::colors;
+
+use std::cmp;
+
+use consts;
+use object;
+use object::actor;
+use object::item::Item;
+use ai::Ai;
 
 pub const MAP_WIDTH: i32 = 80;
 pub const MAP_HEIGHT: i32 = 43;
@@ -14,10 +25,10 @@ pub const MAX_ROOM_MONSTERS: i32 = 3;
 pub const MAX_ROOM_ITEMS:i32 = 4;
 
 #[derive(Clone, Copy, Debug, RustcEncodable, RustcDecodable)]
-struct Tile {
-    impassable: bool,
-    blocks_sight: bool,
-    explored: bool,
+pub struct Tile {
+    pub impassable: bool,
+    pub blocks_sight: bool,
+    pub explored: bool,
 }
 
 impl Tile {
@@ -30,7 +41,7 @@ impl Tile {
     }
 }
 
-type Map = Vec<Vec<Tile>>;
+pub type Map = Vec<Vec<Tile>>;
 
 #[derive(Clone, Copy, Debug)]
 struct Rect {
@@ -58,6 +69,17 @@ impl Rect {
     }
 }
 
+pub fn is_blocked(x: i32, y: i32, map: &Map, objects: &[object::Object]) -> bool {
+    // first test the map tile
+    if map[x as usize][y as usize].impassable {
+        return true;
+    }
+    // now check for any blocking objects
+    objects.iter().any(|object| {
+        object.blocks && object.pos() == (x, y)
+    })
+}
+
 fn create_room(room: Rect, map: &mut Map) {
     for x in (room.x1 + 1)..room.x2 {
         for y in (room.y1 + 1)..room.y2 {
@@ -78,39 +100,28 @@ fn create_v_tunnel(y1: i32, y2: i32, x: i32, map: &mut Map) {
     }
 }
 
-fn is_blocked(x: i32, y: i32, map: &Map, objects: &[Object]) -> bool {
-    // first test the map tile
-    if map[x as usize][y as usize].impassable {
-        return true;
-    }
-    // now check for any blocking objects
-    objects.iter().any(|object| {
-        object.blocks && object.pos() == (x, y)
-    })
-}
-
-fn place_objects(room: Rect, map: &Map, objects: &mut Vec<Object>) {
-    let num_monsters = rand::thread_rng().gen_range(0, consts::MAX_ROOM_MONSTERS + 1);
+fn place_objects(room: Rect, map: &Map, objects: &mut Vec<object::Object>) {
+    let num_monsters = rand::thread_rng().gen_range(0, MAX_ROOM_MONSTERS + 1);
 
     for _ in 0..num_monsters {
         let x = rand::thread_rng().gen_range(room.x1 + 1, room.x2);
         let y = rand::thread_rng().gen_range(room.y1 + 1, room.y2);
         if !is_blocked(x, y, map, objects) {
             let mut monster = if rand::random::<f32>() < 0.8 {
-                let mut c_zombie = Object::new(x, y, 'Z', "Chrysalis zombie",
+                let mut c_zombie = object::Object::new(x, y, 'Z', "Chrysalis zombie",
                                           colors::DESATURATED_GREEN, true);
-                c_zombie.fighter = Some(Fighter{
+                c_zombie.fighter = Some(actor::Fighter{
                     max_hp: 10, hp: 10, defense: 0, power: 3,
-                    on_death: DeathCallback::Monster,
+                    on_death: actor::DeathCallback::Monster,
                 });
                 c_zombie.ai = Some(Ai::Chrysalis);
                 c_zombie
             } else {
-                let mut zombie = Object::new(x, y, 'Z', "runner zombie",
+                let mut zombie = object::Object::new(x, y, 'Z', "runner zombie",
                                             colors::DARKER_GREEN, true);
-                zombie.fighter = Some(Fighter{
+                zombie.fighter = Some(actor::Fighter{
                     max_hp: 16, hp: 16, defense: 1, power: 4,
-                    on_death: DeathCallback::Monster,
+                    on_death: actor::DeathCallback::Monster,
                 });
                 zombie.ai = Some(Ai::Basic);
                 zombie
@@ -120,7 +131,7 @@ fn place_objects(room: Rect, map: &Map, objects: &mut Vec<Object>) {
         }
     }
 
-    let num_items = rand::thread_rng().gen_range(0, consts::MAX_ROOM_ITEMS + 1);
+    let num_items = rand::thread_rng().gen_range(0, MAX_ROOM_ITEMS + 1);
 
     for _ in 0..num_items {
         let x = rand::thread_rng().gen_range(room.x1 + 1, room.x2);
@@ -129,23 +140,23 @@ fn place_objects(room: Rect, map: &Map, objects: &mut Vec<Object>) {
         if !is_blocked(x, y, map, objects) {
             let dice = rand::random::<f32>();
             let item = if dice < 0.7 {
-                let mut object = Object::new(x, y, '!', "First aid kit",
+                let mut object = object::Object::new(x, y, '!', "First aid kit",
                                              colors::VIOLET, false);
                 object.item = Some(Item::Heal);
                 object
             } else if dice < 0.7 + 0.1 {
-                let mut object = Object::new(x, y, '#',
+                let mut object = object::Object::new(x, y, '#',
                                              "scroll of lightning bolt",
                                              colors::LIGHT_YELLOW, false);
                 object.item = Some(Item::Lightning);
                 object
             } else if dice < 0.7 + 0.1 + 0.1 {
-                let mut object = Object::new(x, y, '#', "molotov cocktail",
+                let mut object = object::Object::new(x, y, '#', "molotov cocktail",
                                              colors::LIGHT_YELLOW, false);
                 object.item = Some(Item::Fireball);
                 object
             } else {
-                let mut object = Object::new(x, y, '#', "scroll of confusion",
+                let mut object = object::Object::new(x, y, '#', "scroll of confusion",
                                              colors::LIGHT_YELLOW, false);
                 object.item = Some(Item::Confuse);
                 object
@@ -155,20 +166,20 @@ fn place_objects(room: Rect, map: &Map, objects: &mut Vec<Object>) {
     }
 }
 
-fn make_map(objects: &mut Vec<Object>) -> Map {
-    let mut map = vec![vec![Tile::wall(); consts::MAP_HEIGHT as usize];
-                       consts::MAP_WIDTH as usize];
+pub fn make_map(objects: &mut Vec<object::Object>) -> Map {
+    let mut map = vec![vec![Tile::wall(); MAP_HEIGHT as usize];
+                       MAP_WIDTH as usize];
     let mut rooms = vec![];
     assert_eq!(&objects[consts::PLAYER] as *const _, &objects[0] as *const _);
     objects.truncate(1);
 
-    for _ in 0..consts::MAX_ROOMS {
-        let w = rand::thread_rng().gen_range(consts::ROOM_MIN_SIZE,
-                                             consts::ROOM_MAX_SIZE + 1);
-        let h = rand::thread_rng().gen_range(consts::ROOM_MIN_SIZE,
-                                             consts::ROOM_MAX_SIZE + 1);
-        let x = rand::thread_rng().gen_range(0, consts::MAP_WIDTH - w);
-        let y = rand::thread_rng().gen_range(0, consts::MAP_HEIGHT - h);
+    for _ in 0..MAX_ROOMS {
+        let w = rand::thread_rng().gen_range(ROOM_MIN_SIZE,
+                                             ROOM_MAX_SIZE + 1);
+        let h = rand::thread_rng().gen_range(ROOM_MIN_SIZE,
+                                             ROOM_MAX_SIZE + 1);
+        let x = rand::thread_rng().gen_range(0, MAP_WIDTH - w);
+        let y = rand::thread_rng().gen_range(0, MAP_HEIGHT - h);
 
         let new_room = Rect::new(x, y, w, h);
 
@@ -206,7 +217,7 @@ fn make_map(objects: &mut Vec<Object>) -> Map {
 
     }
     let (last_room_x, last_room_y) = rooms[rooms.len() - 1].center();
-    let stairs = Object::new(last_room_x, last_room_y, '>', "stairs up",
+    let stairs = object::Object::new(last_room_x, last_room_y, '>', "stairs up",
                              colors::WHITE, false);
     objects.push(stairs);
     map
