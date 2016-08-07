@@ -1,35 +1,38 @@
-extern crate tcod;
+#[derive(RustcEncodable, RustcDecodable)]
+pub enum MessageType {
+    Alert,
+    Info,
+    StatusChange,
+    Success
+}
 
-use tcod::colors::{self, Color};
-
-pub const ALERT: Color = colors::RED;
-pub const INFO: Color = colors::BLUE;
-pub const SUCCESS: Color = colors::GREEN;
-
-
-pub type Messages = Vec<(String, Color)>;
+pub type Messages = Vec<(String, MessageType)>;
 
 pub trait MessageLog {
-    fn add<T: Into<String>>(&mut self, message: T, color: Color);
+    fn add<T: Into<String>>(&mut self, message: T, message_type: MessageType);
     fn alert<T: Into<String>>(&mut self, message: T);
     fn info<T: Into<String>>(&mut self, message: T);
+    fn status_change<T: Into<String>>(&mut self, message: T);
     fn success<T: Into<String>>(&mut self, message: T);
 }
 
-impl MessageLog for Vec<(String, Color)> {
-    fn add<T: Into<String>>(&mut self, message: T, color: Color) {
-        self.push((message.into(), color));
+impl MessageLog for Vec<(String, MessageType)> {
+    fn add<T: Into<String>>(&mut self, message: T, message_type: MessageType) {
+        self.push((message.into(), message_type));
     }
 
     fn alert<T: Into<String>>(&mut self, message: T) {
-        self.add(message, ALERT);
+        self.add(message, MessageType::Alert);
     }
 
     fn info<T: Into<String>>(&mut self, message: T) {
-        self.add(message, INFO);
+        self.add(message, MessageType::Info);
     }
 
+    fn status_change<T: Into<String>>(&mut self, message: T) {
+        self.add(message, MessageType::StatusChange);
+    }
     fn success<T: Into<String>>(&mut self, message: T) {
-        self.add(message, SUCCESS);
+        self.add(message, MessageType::Success);
     }
 }

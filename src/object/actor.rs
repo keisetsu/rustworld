@@ -77,13 +77,13 @@ pub fn player_move_or_attack(dx: i32, dy: i32, game: &mut Game,
 }
 
 fn player_death(player: &mut Object, log: &mut log::Messages) {
-    log.add("You died!", colors::RED);
+    log.alert("You died!");
     player.symbol = '%';
     player.color = colors::DARK_RED;
 }
 
 fn monster_death(monster: &mut Object, log: &mut log::Messages) {
-    log.add(format!("{} is dead!", monster.name), colors::ORANGE);
+    log.status_change(format!("{} is dead!", monster.name));
     monster.symbol = '%';
     monster.color = colors::DARK_RED;
     monster.blocks = false;
@@ -96,22 +96,19 @@ pub fn drop_item(inventory_id: usize, game: &mut Game,
              objects: &mut Vec<Object>) {
     let mut item = game.inventory.remove(inventory_id);
     item.set_pos(objects[consts::PLAYER].x, objects[consts::PLAYER].y);
-    game.log.add(format!("You dropped a {}.", item.name),
-                 colors::YELLOW);
+    game.log.info(format!("You dropped a {}.", item.name));
     objects.push(item);
 }
 
 pub fn pick_item_up(object_id: usize, game: &mut Game,
                 objects: &mut Vec<Object>) {
     if game.inventory.len() as i32 >= consts::MAX_INVENTORY_ITEMS {
-        game.log.add(
+        game.log.alert(
                 format!("Your inventory is full, cannot pickup {}.",
-                        objects[object_id].name),
-                colors::RED);
+                        objects[object_id].name));
     } else {
         let item = objects.swap_remove(object_id);
-        game.log.add( format!("You picked up a {}!", item.name),
-                colors::GREEN);
+        game.log.success( format!("You picked up a {}!", item.name));
         game.inventory.push(item);
     }
 }
@@ -132,13 +129,12 @@ pub fn use_item(game_ui: &mut Ui, game: &mut Game, inventory_id: usize,
                 game.inventory.remove(inventory_id);
             }
             item::UseResult::Cancelled => {
-                game.log.add( "Cancelled", colors::WHITE);
+                game.log.info( "Cancelled");
             }
         }
     } else {
-        game.log.add(
+        game.log.alert(
                 format!("The {} cannot be used.",
-                        game.inventory[inventory_id].name),
-                colors::WHITE);
+                        game.inventory[inventory_id].name));
     }
 }

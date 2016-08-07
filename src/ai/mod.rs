@@ -5,7 +5,6 @@ use rand::Rng;
 
 extern crate tcod;
 use tcod::map::Map as FovMap;
-use tcod::colors;
 
 use log::MessageLog;
 use map::Map;
@@ -81,15 +80,13 @@ fn ai_confused(monster_id: usize, game: &mut Game, objects: &mut [Object],
                -> Ai {
 
     if num_turns >= 0 {
-        game.log.add(format!("The {} is confused!",
-                             objects[monster_id].name),
-                     colors::LIGHT_BLUE);
+        game.log.status_change(format!("The {} is confused!",
+                             objects[monster_id].name));
         ai_move_randomly(monster_id, &game.map, objects);
         Ai::Confused{previous_ai: previous_ai, num_turns: num_turns - 1}
     } else {
-        game.log.add(format!("The {} is no longer confused!",
-                                  objects[monster_id].name),
-                colors::RED);
+        game.log.status_change(format!("The {} is no longer confused!",
+                                  objects[monster_id].name));
         *previous_ai
     }
 }

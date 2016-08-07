@@ -18,6 +18,7 @@ use std::ascii::AsciiExt;
 use consts;
 use game;
 use game::Game;
+use log::MessageType;
 use map::{self, Map};
 use object::Object;
 
@@ -28,6 +29,11 @@ pub struct Ui {
     pub fov: FovMap,
     pub mouse: Mouse,
 }
+
+const COLOR_ALERT: Color = colors::RED;
+const COLOR_INFO: Color = colors::LIGHTER_GREY;
+const COLOR_SUCCESS: Color = colors::GREEN;
+const COLOR_STATUS_CHANGE: Color = colors::WHITE;
 
 pub fn initialize(title: &str) -> Ui {
     let root = Root::initializer()
@@ -85,6 +91,16 @@ fn render_bar(panel: &mut Offscreen,
                                                    name, value, maximum));
 }
 
+fn get_message_color(message_type: &MessageType) -> Color {
+    match message_type {
+        &MessageType::Alert => COLOR_ALERT,
+        &MessageType::Info => COLOR_INFO,
+        &MessageType::StatusChange => COLOR_STATUS_CHANGE,
+        &MessageType::Success => COLOR_SUCCESS,
+    }
+}
+
+
 pub fn render_all(game_ui: &mut Ui, game: &mut Game, objects: &[Object],
               fov_recompute: bool) {
     if fov_recompute {
@@ -134,14 +150,14 @@ pub fn render_all(game_ui: &mut Ui, game: &mut Game, objects: &[Object],
 
     // print the game messages, one line at a time
     let mut y = consts::MSG_HEIGHT as i32;
-    for &(ref msg, color) in game.log.iter().rev() {
+    for &(ref msg, ref message_type) in game.log.iter().rev() {
         let msg_height = game_ui.panel.get_height_rect(consts::MSG_X, y,
                                                consts::MSG_WIDTH, 0, msg);
         y -= msg_height;
         if y < 0 {
             break;
         }
-        game_ui.panel.set_default_foreground(color);
+        game_ui.panel.set_default_foreground(get_message_color(message_type));
         game_ui.panel.print_rect(consts::MSG_X, y, consts::MSG_WIDTH, 0, msg);
     }
 
@@ -172,8 +188,8 @@ fn menu<T: AsRef<str>>(header: &str, options: &[T], width: i32,
             format!("Cannot have a menu with more than {} options.",
             consts::MAX_INVENTORY_ITEMS));
 
-    let header_height = root.get_height_rect(0, 0,
-                                             width, consts::SCREEN_HEIGHT, header);
+    // let header_height = root.get_height_rect(0, 0,
+    //                                          width, consts::SCREEN_HEIGHT, header);
     let height = options_len + header_height;
 
     let mut window = Offscreen::new(width, height);

@@ -1,7 +1,6 @@
 extern crate rustc_serialize;
 extern crate tcod;
 
-use tcod::colors;
 use tcod::input::{self, Event, KeyCode};
 
 use ai::Ai;
@@ -29,11 +28,10 @@ pub fn heal_player(_game_ui: &mut Ui, game: &mut Game,
                    objects: &mut [Object]) -> UseResult {
     if let Some(fighter) = objects[consts::PLAYER].fighter {
         if fighter.hp == fighter.max_hp {
-            game.log.add( "You are already at full health.", colors::RED);
+            game.log.alert( "You are already at full health.");
             return UseResult::Cancelled;
         }
-        game.log.add( "Your wounds start to feel better!",
-                       colors::LIGHT_VIOLET);
+        game.log.success( "Your wounds start to feel better!");
         objects[consts::PLAYER].heal(3);
         return UseResult::UsedUp;
     }
@@ -42,9 +40,8 @@ pub fn heal_player(_game_ui: &mut Ui, game: &mut Game,
 
 pub fn cast_confuse(game_ui: &mut Ui, game: &mut Game,
                     objects: &mut [Object]) -> UseResult {
-    game.log.add( "Left-click an enemy to confuse it, or right-click \
-                   to cancel.",
-                   colors::LIGHT_CYAN);
+    game.log.info( "Left-click an enemy to confuse it, or right-click \
+                   to cancel.");
     let monster_id = target_monster(game_ui, game, objects, Some(5.0));
     if let Some(monster_id) = monster_id {
         let old_ai = objects[monster_id].ai.take().unwrap_or(Ai::Basic);
@@ -52,38 +49,34 @@ pub fn cast_confuse(game_ui: &mut Ui, game: &mut Game,
             previous_ai: Box::new(old_ai),
             num_turns: 3,
         });
-        game.log.add(
+        game.log.info(
             format!("The eyes of the {} look vacant and it starts to \
-                     stumble around!", objects[monster_id].name),
-            colors::LIGHT_GREEN);
+                     stumble around!", objects[monster_id].name));
         UseResult::UsedUp
     } else {
-        game.log.add( "No enemy is within range.", colors::RED);
+        game.log.alert( "No enemy is within range.");
         UseResult::Cancelled
     }
 }
 
 pub fn cast_fireball(game_ui: &mut Ui, game: &mut Game,
                      objects: &mut [Object]) -> UseResult {
-    game.log.add( "Left-click a target tile for the fireball, \
-                   or right-click to cancel.",
-                   colors::LIGHT_CYAN);
+    game.log.info( "Left-click a target tile for the molotov, \
+                   or right-click to cancel.");
     let (x, y) = match target_tile(game_ui, game, objects, None) {
         Some(tile_pos) => tile_pos,
         None => return UseResult::Cancelled,
     };
 
-    game.log.add(
-        format!("The fireball explodes, burning everything within a {} \
-                 radius!", 5),
-        colors::GREEN);
+    game.log.success(
+        format!("The molotov explodes, burning everything within a {} \
+                 radius!", 5));
 
     for obj in objects {
         if obj.distance(x, y) <= 5.0 && obj.fighter.is_some() {
-            game.log.add(
+            game.log.success(
                 format!("The {} gets burned for {} hit points.",
-                        obj.name, 10),
-                colors::ORANGE);
+                        obj.name, 10));
             obj.take_damage(10, &mut game.log);
         }
     }
@@ -95,15 +88,14 @@ pub fn cast_lightning(game_ui: &mut Ui, game: &mut Game,
                       objects: &mut [Object]) -> UseResult {
     let monster_id = closest_monster(10, objects, game_ui);
     if let Some(monster_id) = monster_id {
-        game.log.add(
+        game.log.success(
             format!("A lightning bolt strikes the {} with loud thunder! \
                      The damage is {} hit points.",
-                    objects[monster_id].name, 10),
-            colors::LIGHT_BLUE);
+                    objects[monster_id].name, 10));
         objects[monster_id].take_damage(10, &mut game.log);
         UseResult::UsedUp
     } else {
-        game.log.add( "No enemy is within range.", colors::RED);
+        game.log.alert( "No enemy is within range.");
         UseResult::Cancelled
     }
 }

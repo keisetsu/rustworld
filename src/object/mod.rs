@@ -2,7 +2,7 @@ extern crate rustc_serialize;
 
 extern crate tcod;
 
-use tcod::colors::{self, Color};
+use tcod::colors::Color;
 use tcod::console::{
     BackgroundFlag,
     Console
@@ -106,16 +106,12 @@ impl Object {
         let damage = self.fighter.map_or(0, |f| f.power) -
             target.fighter.map_or(0, |f| f.defense);
         if damage > 0 {
-            log.add(
-                    format!("{} attacks {} for {} hit points.", self.name,
-                            target.name, damage),
-                    colors::WHITE);
+            log.info(format!("{} attacks {} for {} hit points.", self.name,
+                             target.name, damage));
             target.take_damage(damage, log);
         } else {
-            log.add(
-                    format!("{} attacks {} but whatevs!",
-                            self.name, target.name),
-                    colors::WHITE);
+            log.info(format!("{} attacks {} but whatevs!",
+                             self.name, target.name));
         }
     }
 
