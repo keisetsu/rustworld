@@ -1,7 +1,5 @@
 extern crate rand;
-
 extern crate rustc_serialize;
-
 extern crate tcod;
 
 mod ai;
