@@ -61,7 +61,8 @@ pub fn new_game(game_ui: &mut ui::Ui) -> (Vec<Object>, Game) {
     });
     let mut objects = vec![player];
     let mut game = Game {
-        map: map::make_map(&mut objects),
+        // map: map::make_map(&mut objects),
+        map: map::make_floor(),
         log: vec![],
         inventory: vec![],
     };

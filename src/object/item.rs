@@ -117,7 +117,7 @@ fn target_tile(game_ui: &mut Ui, game: &mut Game, objects: &[Object],
         render_all(game_ui, game, objects, false);
 
         let (x, y) = (game_ui.mouse.cx as i32, game_ui.mouse.cy as i32);
-        let in_fov = (x < map::MAP_WIDTH) && (y < map::MAP_HEIGHT) &&
+        let in_fov = (x < map::FLOOR_WIDTH) && (y < map::FLOOR_HEIGHT) &&
             game_ui.fov.is_in_fov(x, y);
         let in_range = max_range.map_or(true,
                                         |range| objects[consts::PLAYER]

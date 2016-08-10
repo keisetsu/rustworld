@@ -1,12 +1,9 @@
-extern crate rustc_serialize;
-
-extern crate rand;
-use rand::Rng;
-
-extern crate tcod;
-use tcod::colors;
-
 use std::cmp;
+
+use rand::{self, Rng};
+
+use tcod::colors;
+use tcod::bsp::{Bsp, TraverseOrder};
 
 use consts;
 use object;
@@ -17,6 +14,9 @@ use ai::Ai;
 pub const MAP_WIDTH: i32 = 80;
 pub const MAP_HEIGHT: i32 = 43;
 
+pub const FLOOR_WIDTH: i32 = 20;
+pub const FLOOR_HEIGHT: i32 = 20;
+
 pub const ROOM_MAX_SIZE: i32 = 10;
 pub const ROOM_MIN_SIZE: i32 = 6;
 pub const MAX_ROOMS: i32 = 30;
@@ -26,22 +26,23 @@ pub const MAX_ROOM_ITEMS:i32 = 4;
 
 #[derive(Clone, Copy, Debug, RustcEncodable, RustcDecodable)]
 pub struct Tile {
-    pub impassable: bool,
+    pub blocks: bool,
     pub blocks_sight: bool,
     pub explored: bool,
 }
 
 impl Tile {
     pub fn empty() -> Self {
-        Tile{ blocks_sight: false, explored: false, impassable: false, }
+        Tile{ blocks_sight: false, explored: false, blocks: false, }
     }
 
     pub fn wall() -> Self {
-        Tile{ blocks_sight: true, explored: false, impassable: true,  }
+        Tile{ blocks_sight: true, explored: false, blocks: true,  }
     }
 }
 
-pub type Map = Vec<Vec<Tile>>;
+pub type Map = Vec<Vec<Vec<object::Object>>>;
+//pub type Floor = Vec<Vec<Vec<object::Object>>>;
 
 #[derive(Clone, Copy, Debug)]
 struct Rect {
@@ -71,7 +72,7 @@ impl Rect {
 
 pub fn is_blocked(x: i32, y: i32, map: &Map, objects: &[object::Object]) -> bool {
     // first test the map tile
-    if map[x as usize][y as usize].impassable {
+    if map[x as usize][y as usize].blocks {
         return true;
     }
     // now check for any blocking objects
@@ -88,6 +89,14 @@ fn create_room(room: Rect, map: &mut Map) {
     }
 }
 
+fn create_room2(room: &mut Bsp, floor: &mut Map) {
+    for x in (room.x + 1)..room.x + room.w {
+        for y in (room.y + 1)..room.y + room.h {
+            floor[x as usize][y as usize] = Tile::empty();
+        }
+    }
+}
+
 fn create_h_tunnel(x1: i32, x2: i32, y: i32, map: &mut Map) {
     for x in cmp::min(x1, x2)..(cmp::max(x1, x2) + 1) {
         map[x as usize][y as usize] = Tile::empty();
@@ -99,6 +108,40 @@ fn create_v_tunnel(y1: i32, y2: i32, x: i32, map: &mut Map) {
         map[x as usize][y as usize] = Tile::empty();
     }
 }
+
+fn vline_up(x: i32, y: i32, floor: &mut Map){
+    let mut new_y = y;
+    while new_y >= 0 && floor[x as usize][new_y as usize].blocks == true {
+        floor[x as usize][new_y as usize] = Tile::empty();
+        new_y -= 1;
+    }
+}
+
+fn vline_down(x: i32, y: i32, floor: &mut Map){
+    let mut new_y = y;
+    while new_y < FLOOR_HEIGHT && floor[x as usize][new_y as usize].blocks == true{
+        floor[x as usize][new_y as usize] = Tile::empty();
+        new_y += 1;
+    }
+}
+
+fn hline_left(x: i32, y: i32, floor: &mut Map) {
+    let mut new_x = x;
+    while new_x >= 0 && floor[new_x as usize][y as usize].blocks == true {
+        floor[new_x as usize][y as usize] = Tile::empty();
+        new_x -= 1
+    }
+}
+
+fn hline_right(x: i32, y: i32, floor: &mut Map) {
+    let mut new_x = x;
+    while new_x < FLOOR_WIDTH && floor[new_x as usize][y as usize].blocks == true {
+        floor[new_x as usize][y as usize] = Tile::empty();
+        new_x += 1
+    }
+}
+
+
 
 fn place_objects(room: Rect, map: &Map, objects: &mut Vec<object::Object>) {
     let num_monsters = rand::thread_rng().gen_range(0, MAX_ROOM_MONSTERS + 1);
@@ -166,7 +209,97 @@ fn place_objects(room: Rect, map: &Map, objects: &mut Vec<object::Object>) {
     }
 }
 
+fn traverse_node(node: &mut Bsp, mut floor: &mut Map) -> bool {
+    if node.is_leaf() {
+        let mut minx = node.x + 1;
+        let mut maxx = node.x + node.w - 1;
+        let mut miny = node.y + 1;
+        let mut maxy = node.y + node.h - 1;
+        if maxx == FLOOR_WIDTH - 1 {
+            maxx -= 1;
+        }
+        if maxy == FLOOR_HEIGHT - 1 {
+            maxy -= 1;
+        }
+        node.x = minx;
+        node.y = miny;
+        node.w = maxx - minx + 1;
+        node.h = maxy - miny + 1;
+
+        create_room2(node, floor);
+    } else {
+        // if node.left().is_some() && node.right().is_some() {
+        //     let left = node.left().unwrap();
+        //     let right = node.right().unwrap();
+        if let (Some(left), Some(right)) = (node.left(), node.right()) {
+            node.x = cmp::min(left.x, right.x);
+            node.y = cmp::min(left.y, right.y);
+            node.w = cmp::max(left.x + left.w, right.x + right.w) - node.x;
+            node.h = cmp::max(left.y + left.h, right.y + right.h) - node.y;
+            if node.horizontal() {
+                if left.x + left.w - 1 < right.x ||
+                    right.x + right.w - 1 < left.x {
+                        let x1 = rand::thread_rng()
+                            .gen_range(left.x, left.x + left.w - 1);
+                        let x2 = rand::thread_rng()
+                            .gen_range(right.x, right.x + right.w - 1);
+                        let y = rand::thread_rng()
+                            .gen_range(left.y + left.h, right.y);
+                        vline_up(x1, y - 1, &mut floor);
+                        create_h_tunnel(x1, x2, y, &mut floor);
+                        vline_down(x2, y + 1, &mut floor);
+                    } else {
+                        let minx = cmp::max(left.x, right.x);
+                        let maxx = cmp::min(left.x + left.w - 1,
+                                            right.x + right.w - 1);
+                        let x = rand::thread_rng().gen_range(minx, maxx);
+                        vline_down(x, right.y, &mut floor);
+                        vline_up(x, right.y - 1, &mut floor);
+                    }
+
+            } else {
+                if left.y + left.h - 1 < right.y ||
+                    right.y + right.h - 1 < left.y {
+                        let y1 = rand::thread_rng()
+                            .gen_range(left.y, left.y + left.h - 1);
+                        let y2 = rand::thread_rng()
+                            .gen_range(right.y, right.y + right.h - 1);
+                        let x = rand::thread_rng()
+                            .gen_range(left.x + left.w, right.x);
+                        hline_left(x - 1, y1, &mut floor);
+                        create_v_tunnel(y1, y2, x, &mut floor);
+                        hline_right(x + 1, y2, &mut floor);
+                    } else {
+                        let miny = cmp::max(left.y, right.y);
+                        let maxy = cmp::min(left.y + left.h - 1,
+                                            right.y + right.h - 1);
+                        let y = rand::thread_rng().gen_range(miny, maxy);
+                        hline_left(right.x - 1, y, &mut floor);
+                        hline_right(right.x, y, &mut floor);
+                    }
+            }
+        }
+    }
+    true
+}
+
+
+pub fn make_floor() -> Map {
+    let mut floor = vec![vec![Tile::wall(); FLOOR_HEIGHT as usize];
+                         FLOOR_WIDTH as usize];
+    // let mut rooms = vec![];
+
+    let mut bsp = Bsp::new_with_size(0, 0, FLOOR_WIDTH, FLOOR_HEIGHT);
+    bsp.split_recursive(None, 10, 6, 6, 1.5, 1.5);
+    let mut counter = 0;
+    bsp.traverse(TraverseOrder::InvertedLevelOrder, |node| {
+        traverse_node(node, &mut floor)
+    });
+    floor
+}
+
 pub fn make_map(objects: &mut Vec<object::Object>) -> Map {
+    make_floor();
     let mut map = vec![vec![Tile::wall(); MAP_HEIGHT as usize];
                        MAP_WIDTH as usize];
     let mut rooms = vec![];

@@ -50,15 +50,16 @@ pub fn initialize(title: &str) -> Ui {
         root: root,
         con: Offscreen::new(map::MAP_WIDTH, map::MAP_HEIGHT),
         panel: Offscreen::new(consts::SCREEN_WIDTH, consts::PANEL_HEIGHT),
-        fov: FovMap::new(map::MAP_WIDTH, map::MAP_HEIGHT),
+        // fov: FovMap::new(map::MAP_WIDTH, map::MAP_HEIGHT),
+        fov: FovMap::new(20, 20),
         mouse: Default::default(),
     }
 
 }
 
 pub fn initialize_fov(map: &Map, game_ui: &mut Ui) {
-    for y in 0..map::MAP_HEIGHT {
-        for x in 0..map::MAP_WIDTH {
+    for y in 0..map::FLOOR_HEIGHT {
+        for x in 0..map::FLOOR_WIDTH {
             game_ui.fov.set(x, y,
                          !map[x as usize][y as usize].blocks_sight,
                          !map[x as usize][y as usize].impassable);
@@ -108,8 +109,8 @@ pub fn render_all(game_ui: &mut Ui, game: &mut Game, objects: &[Object],
         game_ui.fov.compute_fov(player.x, player.y, consts::TORCH_RADIUS,
                              consts::FOV_LIGHT_WALLS, consts::FOV_ALGO);
 
-        for y in 0..map::MAP_HEIGHT {
-            for x in 0..map::MAP_WIDTH {
+        for y in 0..map::FLOOR_HEIGHT {
+            for x in 0..map::FLOOR_WIDTH {
                 let visible = game_ui.fov.is_in_fov(x, y);
                 // let visible = true;
                 let wall = game.map[x as usize][y as usize].blocks_sight;
