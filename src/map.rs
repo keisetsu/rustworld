@@ -26,23 +26,23 @@ pub const MAX_ROOM_ITEMS:i32 = 4;
 
 #[derive(Clone, Copy, Debug, RustcEncodable, RustcDecodable)]
 pub struct Tile {
-    pub impassable: bool,
+    pub blocks: bool,
     pub blocks_sight: bool,
     pub explored: bool,
 }
 
 impl Tile {
     pub fn empty() -> Self {
-        Tile{ blocks_sight: false, explored: false, impassable: false, }
+        Tile{ blocks_sight: false, explored: false, blocks: false, }
     }
 
     pub fn wall() -> Self {
-        Tile{ blocks_sight: true, explored: false, impassable: true,  }
+        Tile{ blocks_sight: true, explored: false, blocks: true,  }
     }
 }
 
-pub type Map = Vec<Vec<Tile>>;
-pub type Floor = Vec<Vec<Tile>>;
+pub type Map = Vec<Vec<Vec<object::Object>>>;
+//pub type Floor = Vec<Vec<Vec<object::Object>>>;
 
 #[derive(Clone, Copy, Debug)]
 struct Rect {
@@ -72,7 +72,7 @@ impl Rect {
 
 pub fn is_blocked(x: i32, y: i32, map: &Map, objects: &[object::Object]) -> bool {
     // first test the map tile
-    if map[x as usize][y as usize].impassable {
+    if map[x as usize][y as usize].blocks {
         return true;
     }
     // now check for any blocking objects
@@ -89,7 +89,7 @@ fn create_room(room: Rect, map: &mut Map) {
     }
 }
 
-fn create_room2(room: &mut Bsp, floor: &mut Floor) {
+fn create_room2(room: &mut Bsp, floor: &mut Map) {
     for x in (room.x + 1)..room.x + room.w {
         for y in (room.y + 1)..room.y + room.h {
             floor[x as usize][y as usize] = Tile::empty();
@@ -109,51 +109,39 @@ fn create_v_tunnel(y1: i32, y2: i32, x: i32, map: &mut Map) {
     }
 }
 
-// fn vline(x: i32, y1: i32, y2: i32, floor: &mut Floor):
-//     if y1 > y2:
-//         y1,y2 = y2,y1
-
-//     for y in range(y1,y2+1):
-//         map[x][y].blocked = False
-//         map[x][y].block_sight = False
-
-fn vline_up(x: i32, y: i32, floor: &mut Floor){
+fn vline_up(x: i32, y: i32, floor: &mut Map){
     let mut new_y = y;
-    while new_y >= 0 && floor[x as usize][new_y as usize].impassable == true {
+    while new_y >= 0 && floor[x as usize][new_y as usize].blocks == true {
         floor[x as usize][new_y as usize] = Tile::empty();
         new_y -= 1;
     }
 }
 
-fn vline_down(x: i32, y: i32, floor: &mut Floor){
+fn vline_down(x: i32, y: i32, floor: &mut Map){
     let mut new_y = y;
-    while new_y < FLOOR_HEIGHT && floor[x as usize][new_y as usize].impassable == true{
+    while new_y < FLOOR_HEIGHT && floor[x as usize][new_y as usize].blocks == true{
         floor[x as usize][new_y as usize] = Tile::empty();
         new_y += 1;
     }
 }
-// fn hline(map, x1, y, x2):
-//     if x1 > x2:
-//         x1,x2 = x2,x1
-//     for x in range(x1,x2+1):
-//         map[x][y].blocked = False
-//         map[x][y].block_sight = False
 
-fn hline_left(x: i32, y: i32, floor: &mut Floor) {
+fn hline_left(x: i32, y: i32, floor: &mut Map) {
     let mut new_x = x;
-    while new_x >= 0 && floor[new_x as usize][y as usize].impassable == true {
+    while new_x >= 0 && floor[new_x as usize][y as usize].blocks == true {
         floor[new_x as usize][y as usize] = Tile::empty();
         new_x -= 1
     }
 }
 
-fn hline_right(x: i32, y: i32, floor: &mut Floor) {
+fn hline_right(x: i32, y: i32, floor: &mut Map) {
     let mut new_x = x;
-    while new_x < FLOOR_WIDTH && floor[new_x as usize][y as usize].impassable == true {
+    while new_x < FLOOR_WIDTH && floor[new_x as usize][y as usize].blocks == true {
         floor[new_x as usize][y as usize] = Tile::empty();
         new_x += 1
     }
 }
+
+
 
 fn place_objects(room: Rect, map: &Map, objects: &mut Vec<object::Object>) {
     let num_monsters = rand::thread_rng().gen_range(0, MAX_ROOM_MONSTERS + 1);
@@ -221,7 +209,7 @@ fn place_objects(room: Rect, map: &Map, objects: &mut Vec<object::Object>) {
     }
 }
 
-fn traverse_node(node: &mut Bsp, mut floor: &mut Floor) -> bool {
+fn traverse_node(node: &mut Bsp, mut floor: &mut Map) -> bool {
     if node.is_leaf() {
         let mut minx = node.x + 1;
         let mut maxx = node.x + node.w - 1;
@@ -240,10 +228,10 @@ fn traverse_node(node: &mut Bsp, mut floor: &mut Floor) -> bool {
 
         create_room2(node, floor);
     } else {
-        if node.left().is_some() && node.right().is_some() {
-            let left = node.left().unwrap();
-            let right = node.right().unwrap();
-            println!("{:?}", left);
+        // if node.left().is_some() && node.right().is_some() {
+        //     let left = node.left().unwrap();
+        //     let right = node.right().unwrap();
+        if let (Some(left), Some(right)) = (node.left(), node.right()) {
             node.x = cmp::min(left.x, right.x);
             node.y = cmp::min(left.y, right.y);
             node.w = cmp::max(left.x + left.w, right.x + right.w) - node.x;
