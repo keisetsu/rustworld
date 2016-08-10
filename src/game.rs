@@ -53,7 +53,8 @@ pub fn load_game() -> Result<(Vec<Object>, Game), Box<Error>> {
 }
 
 pub fn new_game(game_ui: &mut ui::Ui) -> (Vec<Object>, Game) {
-    let mut player = Object::new(0, 0, '@', "player", colors::WHITE, true);
+
+    let mut player = Object::new(4, 4, '@', "player", colors::WHITE, true, false);
     player.alive = true;
     player.fighter = Some(actor::Fighter{
         max_hp: 30, hp: 30, defense: 2, power: 5,
@@ -62,7 +63,7 @@ pub fn new_game(game_ui: &mut ui::Ui) -> (Vec<Object>, Game) {
     let mut objects = vec![player];
     let mut game = Game {
         // map: map::make_map(&mut objects),
-        map: map::make_floor(),
+        map: map::make_floor(&mut objects),
         log: vec![],
         inventory: vec![],
     };
@@ -118,6 +119,6 @@ pub fn play_game(objects: &mut Vec<Object>, game: &mut Game, game_ui: &mut ui::U
 }
 
 pub fn next_level(game_ui: &mut ui::Ui, objects: &mut Vec<Object>, game: &mut Game) {
-    game.map = map::make_map(objects);
+    game.map = map::make_floor(objects);
     ui::initialize_fov(&game.map, game_ui);
 }

@@ -1,7 +1,5 @@
 extern crate rustc_serialize;
 
-extern crate tcod;
-
 use tcod::colors::Color;
 use tcod::console::{
     BackgroundFlag,
@@ -22,15 +20,17 @@ pub struct Object {
     pub color: Color,
     pub name: String,
     pub blocks: bool,
+    pub blocks_view: bool,
     pub alive: bool,
     pub fighter: Option<actor::Fighter>,
     pub ai: Option<Ai>,
     pub item: Option<item::Item>,
+    pub inventory: Option<Box<Vec<Object>>>,
 }
 
 impl Object {
     pub fn new(x: i32, y: i32, symbol: char, name: &str,
-               color: Color, blocks: bool) -> Self {
+               color: Color, blocks: bool, blocks_view: bool) -> Self {
         Object {
             x: x,
             y: y,
@@ -38,10 +38,12 @@ impl Object {
             color: color,
             name: name.into(),
             blocks: blocks,
+            blocks_view: blocks_view,
             alive: false,
             fighter: None,
             ai: None,
             item: None,
+            inventory: None,
         }
     }
 

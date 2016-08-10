@@ -6,8 +6,7 @@ use tcod::colors;
 use tcod::bsp::{Bsp, TraverseOrder};
 
 use consts;
-use object;
-use object::actor;
+use object::{actor, Object};
 use object::item::Item;
 use ai::Ai;
 
@@ -24,25 +23,45 @@ pub const MAX_ROOMS: i32 = 30;
 pub const MAX_ROOM_MONSTERS: i32 = 3;
 pub const MAX_ROOM_ITEMS:i32 = 4;
 
-#[derive(Clone, Copy, Debug, RustcEncodable, RustcDecodable)]
+#[derive(Debug, RustcEncodable, RustcDecodable)]
 pub struct Tile {
-    pub blocks: bool,
-    pub blocks_sight: bool,
     pub explored: bool,
+    pub items: Vec<Object>,
 }
 
 impl Tile {
-    pub fn empty() -> Self {
-        Tile{ blocks_sight: false, explored: false, blocks: false, }
+    pub fn new(x: i32, y: i32) -> Self {
+        let concrete = Object::new(x, y, ' ', "concrete floor",
+                                   colors::GREY, false, false);
+        Tile{ explored: false, items: vec![concrete],}
     }
 
-    pub fn wall() -> Self {
-        Tile{ blocks_sight: true, explored: false, blocks: true,  }
+    pub fn wall(x: i32, y: i32) -> Self {
+        let mut tile = Tile::new(x, y);
+        let drywall = Object::new(x, y, ' ', "drywall",
+                                   colors::DARKEST_GREY, true, true);
+        tile.items.push(drywall);
+        tile
+    }
+//     objects.iter().any(|object| {
+//         object.blocks && object.pos() == (x, y)
+//     })
+
+    pub fn is_blocked(&self) -> bool {
+        self.items.iter().any(|item| {
+            item.blocks
+        })
+    }
+
+    pub fn blocks_view(&self) -> bool {
+        self.items.iter().any(|item| {
+            item.blocks_view
+        })
     }
 }
 
-pub type Map = Vec<Vec<Vec<object::Object>>>;
-//pub type Floor = Vec<Vec<Vec<object::Object>>>;
+pub type Map = Vec<Vec<Tile>>;
+//pub type Floor = Vec<Vec<Vec<Object>>>;
 
 #[derive(Clone, Copy, Debug)]
 struct Rect {
@@ -70,144 +89,147 @@ impl Rect {
     }
 }
 
-pub fn is_blocked(x: i32, y: i32, map: &Map, objects: &[object::Object]) -> bool {
-    // first test the map tile
-    if map[x as usize][y as usize].blocks {
-        return true;
-    }
-    // now check for any blocking objects
-    objects.iter().any(|object| {
-        object.blocks && object.pos() == (x, y)
-    })
-}
+// pub fn is_blocked(x: i32, y: i32, map: &Map, objects: &[Object]) -> bool {
+//     // first test the map tile
+//     if map[x as usize][y as usize].is_blocked() {
+//         return true;
+//     }
+//     // now check for any blocking objects
+//     objects.iter().any(|object| {
+//         object.blocks && object.pos() == (x, y)
+//     })
+// }
 
-fn create_room(room: Rect, map: &mut Map) {
-    for x in (room.x1 + 1)..room.x2 {
-        for y in (room.y1 + 1)..room.y2 {
-            map[x as usize][y as usize] = Tile::empty();
-        }
-    }
-}
-
+// fn create_room(room: Rect, map: &mut Map) {
+//     for x in (room.x1 + 1)..room.x2 {
+//         for y in (room.y1 + 1)..room.y2 {
+//             map[x as usize][y as usize] = Tile::empty();
+//         }
+//     }
+// }
 fn create_room2(room: &mut Bsp, floor: &mut Map) {
     for x in (room.x + 1)..room.x + room.w {
         for y in (room.y + 1)..room.y + room.h {
-            floor[x as usize][y as usize] = Tile::empty();
+            floor[x as usize][y as usize] = Tile::new(x, y);
         }
     }
 }
 
 fn create_h_tunnel(x1: i32, x2: i32, y: i32, map: &mut Map) {
     for x in cmp::min(x1, x2)..(cmp::max(x1, x2) + 1) {
-        map[x as usize][y as usize] = Tile::empty();
+        map[x as usize][y as usize] = Tile::new(x, y);
     }
 }
 
 fn create_v_tunnel(y1: i32, y2: i32, x: i32, map: &mut Map) {
     for y in cmp::min(y1, y2)..(cmp::max(y1, y2) + 1) {
-        map[x as usize][y as usize] = Tile::empty();
+        map[x as usize][y as usize] = Tile::new(x, y);
     }
 }
 
 fn vline_up(x: i32, y: i32, floor: &mut Map){
     let mut new_y = y;
-    while new_y >= 0 && floor[x as usize][new_y as usize].blocks == true {
-        floor[x as usize][new_y as usize] = Tile::empty();
+    while new_y >= 1 &&
+        floor[x as usize][new_y as usize].is_blocked() == true {
+        floor[x as usize][new_y as usize] = Tile::new(x, new_y);
         new_y -= 1;
     }
 }
 
 fn vline_down(x: i32, y: i32, floor: &mut Map){
     let mut new_y = y;
-    while new_y < FLOOR_HEIGHT && floor[x as usize][new_y as usize].blocks == true{
-        floor[x as usize][new_y as usize] = Tile::empty();
+    while new_y < FLOOR_HEIGHT  - 1&&
+        floor[x as usize][new_y as usize].is_blocked() == true {
+        floor[x as usize][new_y as usize] = Tile::new(x, new_y);
         new_y += 1;
     }
 }
 
 fn hline_left(x: i32, y: i32, floor: &mut Map) {
     let mut new_x = x;
-    while new_x >= 0 && floor[new_x as usize][y as usize].blocks == true {
-        floor[new_x as usize][y as usize] = Tile::empty();
+    while new_x >= 1 &&
+        floor[new_x as usize][y as usize].is_blocked() == true {
+        floor[new_x as usize][y as usize] = Tile::new(new_x, y);
         new_x -= 1
     }
 }
 
 fn hline_right(x: i32, y: i32, floor: &mut Map) {
     let mut new_x = x;
-    while new_x < FLOOR_WIDTH && floor[new_x as usize][y as usize].blocks == true {
-        floor[new_x as usize][y as usize] = Tile::empty();
+    while new_x < FLOOR_WIDTH - 1 &&
+        floor[new_x as usize][y as usize].is_blocked() == true {
+        floor[new_x as usize][y as usize] = Tile::new(new_x, y);
         new_x += 1
     }
 }
 
 
 
-fn place_objects(room: Rect, map: &Map, objects: &mut Vec<object::Object>) {
-    let num_monsters = rand::thread_rng().gen_range(0, MAX_ROOM_MONSTERS + 1);
+// fn place_objects(room: Rect, map: &Map, objects: &mut Vec<Object>) {
+//     let num_monsters = rand::thread_rng().gen_range(0, MAX_ROOM_MONSTERS + 1);
 
-    for _ in 0..num_monsters {
-        let x = rand::thread_rng().gen_range(room.x1 + 1, room.x2);
-        let y = rand::thread_rng().gen_range(room.y1 + 1, room.y2);
-        if !is_blocked(x, y, map, objects) {
-            let mut monster = if rand::random::<f32>() < 0.8 {
-                let mut c_zombie = object::Object::new(x, y, 'Z', "Chrysalis zombie",
-                                          colors::DESATURATED_GREEN, true);
-                c_zombie.fighter = Some(actor::Fighter{
-                    max_hp: 10, hp: 10, defense: 0, power: 3,
-                    on_death: actor::DeathCallback::Monster,
-                });
-                c_zombie.ai = Some(Ai::Chrysalis);
-                c_zombie
-            } else {
-                let mut zombie = object::Object::new(x, y, 'Z', "runner zombie",
-                                            colors::DARKER_GREEN, true);
-                zombie.fighter = Some(actor::Fighter{
-                    max_hp: 16, hp: 16, defense: 1, power: 4,
-                    on_death: actor::DeathCallback::Monster,
-                });
-                zombie.ai = Some(Ai::Basic);
-                zombie
-            };
-            monster.alive = true;
-            objects.push(monster);
-        }
-    }
+//     for _ in 0..num_monsters {
+//         let x = rand::thread_rng().gen_range(room.x1 + 1, room.x2);
+//         let y = rand::thread_rng().gen_range(room.y1 + 1, room.y2);
+//         if !map[x as usize][ y as usize].is_blocked() {
+//             let mut monster = if rand::random::<f32>() < 0.8 {
+//                 let mut c_zombie = Object::new(x, y, 'Z', "Chrysalis zombie",
+//                                           colors::DESATURATED_GREEN, true, false);
+//                 c_zombie.fighter = Some(actor::Fighter{
+//                     max_hp: 10, hp: 10, defense: 0, power: 3,
+//                     on_death: actor::DeathCallback::Monster,
+//                 });
+//                 c_zombie.ai = Some(Ai::Chrysalis);
+//                 c_zombie
+//             } else {
+//                 let mut zombie = Object::new(x, y, 'Z', "runner zombie",
+//                                             colors::DARKER_GREEN, true, false);
+//                 zombie.fighter = Some(actor::Fighter{
+//                     max_hp: 16, hp: 16, defense: 1, power: 4,
+//                     on_death: actor::DeathCallback::Monster,
+//                 });
+//                 zombie.ai = Some(Ai::Basic);
+//                 zombie
+//             };
+//             monster.alive = true;
+//             objects.push(monster);
+//         }
+//     }
 
-    let num_items = rand::thread_rng().gen_range(0, MAX_ROOM_ITEMS + 1);
+//     let num_items = rand::thread_rng().gen_range(0, MAX_ROOM_ITEMS + 1);
 
-    for _ in 0..num_items {
-        let x = rand::thread_rng().gen_range(room.x1 + 1, room.x2);
-        let y = rand::thread_rng().gen_range(room.y1 + 1, room.y2);
+//     for _ in 0..num_items {
+//         let x = rand::thread_rng().gen_range(room.x1 + 1, room.x2);
+//         let y = rand::thread_rng().gen_range(room.y1 + 1, room.y2);
 
-        if !is_blocked(x, y, map, objects) {
-            let dice = rand::random::<f32>();
-            let item = if dice < 0.7 {
-                let mut object = object::Object::new(x, y, '!', "First aid kit",
-                                             colors::VIOLET, false);
-                object.item = Some(Item::Heal);
-                object
-            } else if dice < 0.7 + 0.1 {
-                let mut object = object::Object::new(x, y, '#',
-                                             "scroll of lightning bolt",
-                                             colors::LIGHT_YELLOW, false);
-                object.item = Some(Item::Lightning);
-                object
-            } else if dice < 0.7 + 0.1 + 0.1 {
-                let mut object = object::Object::new(x, y, '#', "molotov cocktail",
-                                             colors::LIGHT_YELLOW, false);
-                object.item = Some(Item::Fireball);
-                object
-            } else {
-                let mut object = object::Object::new(x, y, '#', "scroll of confusion",
-                                             colors::LIGHT_YELLOW, false);
-                object.item = Some(Item::Confuse);
-                object
-            };
-            objects.push(item);
-        }
-    }
-}
+//         if !map[x as usize][y as usize].is_blocked() {
+//             let dice = rand::random::<f32>();
+//             let item = if dice < 0.7 {
+//                 let mut object = Object::new(x, y, '!', "First aid kit",
+//                                              colors::VIOLET, false);
+//                 object.item = Some(Item::Heal);
+//                 object
+//             } else if dice < 0.7 + 0.1 {
+//                 let mut object = Object::new(x, y, '#',
+//                                              "scroll of lightning bolt",
+//                                              colors::LIGHT_YELLOW, false);
+//                 object.item = Some(Item::Lightning);
+//                 object
+//             } else if dice < 0.7 + 0.1 + 0.1 {
+//                 let mut object = Object::new(x, y, '#', "molotov cocktail",
+//                                              colors::LIGHT_YELLOW, false);
+//                 object.item = Some(Item::Fireball);
+//                 object
+//             } else {
+//                 let mut object = Object::new(x, y, '#', "scroll of confusion",
+//                                              colors::LIGHT_YELLOW, false);
+//                 object.item = Some(Item::Confuse);
+//                 object
+//             };
+//             objects.push(item);
+//         }
+//     }
+// }
 
 fn traverse_node(node: &mut Bsp, mut floor: &mut Map) -> bool {
     if node.is_leaf() {
@@ -228,9 +250,6 @@ fn traverse_node(node: &mut Bsp, mut floor: &mut Map) -> bool {
 
         create_room2(node, floor);
     } else {
-        // if node.left().is_some() && node.right().is_some() {
-        //     let left = node.left().unwrap();
-        //     let right = node.right().unwrap();
         if let (Some(left), Some(right)) = (node.left(), node.right()) {
             node.x = cmp::min(left.x, right.x);
             node.y = cmp::min(left.y, right.y);
@@ -284,74 +303,81 @@ fn traverse_node(node: &mut Bsp, mut floor: &mut Map) -> bool {
 }
 
 
-pub fn make_floor() -> Map {
-    let mut floor = vec![vec![Tile::wall(); FLOOR_HEIGHT as usize];
-                         FLOOR_WIDTH as usize];
+pub fn make_floor(actors: &mut Vec<Object>) -> Map {
+    let mut floor = vec![];
+    for x in 0..FLOOR_WIDTH {
+        floor.push(vec![]);
+        for y in 0..FLOOR_HEIGHT {
+            let mut tile: Tile = Tile::wall(x, y);
+            floor[x as usize].push(tile);
+        }
+    }
+    println!("{:?}", floor);
     // let mut rooms = vec![];
 
     let mut bsp = Bsp::new_with_size(0, 0, FLOOR_WIDTH, FLOOR_HEIGHT);
     bsp.split_recursive(None, 10, 6, 6, 1.5, 1.5);
-    let mut counter = 0;
     bsp.traverse(TraverseOrder::InvertedLevelOrder, |node| {
         traverse_node(node, &mut floor)
     });
+
     floor
 }
 
-pub fn make_map(objects: &mut Vec<object::Object>) -> Map {
-    make_floor();
-    let mut map = vec![vec![Tile::wall(); MAP_HEIGHT as usize];
-                       MAP_WIDTH as usize];
-    let mut rooms = vec![];
-    assert_eq!(&objects[consts::PLAYER] as *const _, &objects[0] as *const _);
-    objects.truncate(1);
+// pub fn make_map(objects: &mut Vec<Object>) -> Map {
+//     make_floor();
+//     let mut map = vec![vec![Tile::wall(); MAP_HEIGHT as usize];
+//                        MAP_WIDTH as usize];
+//     let mut rooms = vec![];
+//     assert_eq!(&objects[consts::PLAYER] as *const _, &objects[0] as *const _);
+//     objects.truncate(1);
 
-    for _ in 0..MAX_ROOMS {
-        let w = rand::thread_rng().gen_range(ROOM_MIN_SIZE,
-                                             ROOM_MAX_SIZE + 1);
-        let h = rand::thread_rng().gen_range(ROOM_MIN_SIZE,
-                                             ROOM_MAX_SIZE + 1);
-        let x = rand::thread_rng().gen_range(0, MAP_WIDTH - w);
-        let y = rand::thread_rng().gen_range(0, MAP_HEIGHT - h);
+//     for _ in 0..MAX_ROOMS {
+//         let w = rand::thread_rng().gen_range(ROOM_MIN_SIZE,
+//                                              ROOM_MAX_SIZE + 1);
+//         let h = rand::thread_rng().gen_range(ROOM_MIN_SIZE,
+//                                              ROOM_MAX_SIZE + 1);
+//         let x = rand::thread_rng().gen_range(0, MAP_WIDTH - w);
+//         let y = rand::thread_rng().gen_range(0, MAP_HEIGHT - h);
 
-        let new_room = Rect::new(x, y, w, h);
+//         let new_room = Rect::new(x, y, w, h);
 
-        let failed = rooms.iter().any(|other_room
-                                      |new_room.intersects_with(
-                                          other_room));
+//         let failed = rooms.iter().any(|other_room
+//                                       |new_room.intersects_with(
+//                                           other_room));
 
-        if !failed {
+//         if !failed {
 
-            create_room(new_room, &mut map);
-            place_objects(new_room, &map, objects);
+//             create_room(new_room, &mut map);
+//             place_objects(new_room, &map, objects);
 
-            let (new_x, new_y) = new_room.center();
+//             let (new_x, new_y) = new_room.center();
 
-            if rooms.is_empty() {
-                objects[consts::PLAYER].set_pos(new_x, new_y);
-            } else {
-                let (prev_x, prev_y) =
-                    rooms[rooms.len() - 1].center();
+//             if rooms.is_empty() {
+//                 objects[consts::PLAYER].set_pos(new_x, new_y);
+//             } else {
+//                 let (prev_x, prev_y) =
+//                     rooms[rooms.len() - 1].center();
 
-                if rand::random() {
-                    create_h_tunnel(prev_x, new_x,
-                                    prev_y, &mut map);
-                    create_v_tunnel(prev_y, new_y,
-                                    prev_x, &mut map);
-                } else {
-                    create_v_tunnel(prev_y, new_y,
-                                    prev_x, &mut map);
-                    create_h_tunnel(prev_x, new_x,
-                                    prev_y, &mut map);
-                }
-            }
-            rooms.push(new_room);
-        }
+//                 if rand::random() {
+//                     create_h_tunnel(prev_x, new_x,
+//                                     prev_y, &mut map);
+//                     create_v_tunnel(prev_y, new_y,
+//                                     prev_x, &mut map);
+//                 } else {
+//                     create_v_tunnel(prev_y, new_y,
+//                                     prev_x, &mut map);
+//                     create_h_tunnel(prev_x, new_x,
+//                                     prev_y, &mut map);
+//                 }
+//             }
+//             rooms.push(new_room);
+//         }
 
-    }
-    let (last_room_x, last_room_y) = rooms[rooms.len() - 1].center();
-    let stairs = object::Object::new(last_room_x, last_room_y, '>', "stairs up",
-                             colors::WHITE, false);
-    objects.push(stairs);
-    map
-}
+//     }
+//     let (last_room_x, last_room_y) = rooms[rooms.len() - 1].center();
+//     let stairs = Object::new(last_room_x, last_room_y, '>', "stairs up",
+//                              colors::WHITE, false);
+//     objects.push(stairs);
+//     map
+// }
