@@ -30,6 +30,6 @@ pub const COLOR_LIGHT_GROUND: Color = colors::LIGHT_GREY;
 
 pub const FOV_ALGO: FovAlgorithm = FovAlgorithm::Basic;
 pub const FOV_LIGHT_WALLS: bool = true;
-pub const TORCH_RADIUS: i32 = 10;
+pub const TORCH_RADIUS: i32 = 3;
 
 pub const PLAYER: usize = 0;

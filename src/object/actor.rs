@@ -4,7 +4,7 @@ use consts;
 use game::Game;
 use log;
 use log::MessageLog;
-use object::Object;
+use object::{self, Object};
 use object::item::{self, Item};
 use map::Map;
 use ui::Ui;
@@ -38,7 +38,7 @@ pub struct Fighter {
 
 pub fn move_by(id: usize, dx: i32, dy: i32, map: &Map, objects: &mut[Object]) {
     let (x, y) = objects[id].pos();
-    if !map[(x + dx) as usize][(y + dy) as usize].is_blocked() {
+    if map[(x + dx) as usize][(y + dy) as usize].is_blocked() == object::Blocks::No {
         objects[id].set_pos(x + dx, y + dy);
     }
 }
@@ -86,7 +86,8 @@ fn monster_death(monster: &mut Object, log: &mut log::Messages) {
     log.status_change(format!("{} is dead!", monster.name));
     monster.symbol = '%';
     monster.color = colors::DARK_RED;
-    monster.blocks = false;
+    monster.blocks = object::Blocks::No;
+    monster.blocks_view = object::Blocks::No;
     monster.fighter = None;
     monster.ai = None;
     monster.name = format!("remains of {}", monster.name);

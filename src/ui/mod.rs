@@ -20,7 +20,7 @@ use game;
 use game::Game;
 use log::MessageType;
 use map::{self, Map};
-use object::Object;
+use object::{self, Object};
 
 pub struct Ui {
     pub root: Root,
@@ -51,7 +51,7 @@ pub fn initialize(title: &str) -> Ui {
         con: Offscreen::new(map::MAP_WIDTH, map::MAP_HEIGHT),
         panel: Offscreen::new(consts::SCREEN_WIDTH, consts::PANEL_HEIGHT),
         // fov: FovMap::new(map::MAP_WIDTH, map::MAP_HEIGHT),
-        fov: FovMap::new(20, 20),
+        fov: FovMap::new(map::FLOOR_WIDTH, map::FLOOR_HEIGHT),
         mouse: Default::default(),
     }
 
@@ -61,8 +61,11 @@ pub fn initialize_fov(map: &Map, game_ui: &mut Ui) {
     for y in 0..map::FLOOR_HEIGHT {
         for x in 0..map::FLOOR_WIDTH {
             game_ui.fov.set(x, y,
-                         !map[x as usize][y as usize].blocks_view(),
-                         !map[x as usize][y as usize].is_blocked());
+                         map[x as usize][y as usize].blocks_view() !=
+                            object::Blocks::Full,
+                         map[x as usize][y as usize].is_blocked() !=
+                            object::Blocks::Full
+            );
         }
     }
     game_ui.con.clear();
@@ -115,10 +118,11 @@ pub fn render_all(game_ui: &mut Ui, game: &mut Game, objects: &[Object],
                 // let visible = true;
                 let wall = game.map[x as usize][y as usize].blocks_view();
                 let color = match(visible, wall) {
-                    (false, true) => consts::COLOR_DARK_WALL,
-                    (false, false) => consts::COLOR_DARK_GROUND,
-                    (true, true) => consts::COLOR_LIGHT_WALL,
-                    (true, false) => consts::COLOR_LIGHT_GROUND,
+                    (false, object::Blocks::Full) => consts::COLOR_DARK_WALL,
+                    (false, object::Blocks::No) => consts::COLOR_DARK_GROUND,
+                    (true, object::Blocks::Full) => consts::COLOR_LIGHT_WALL,
+                    (true, object::Blocks::No) => consts::COLOR_LIGHT_GROUND,
+                    (_, _) => consts::COLOR_LIGHT_GROUND,
                 };
 
                 let explored =

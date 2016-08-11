@@ -6,18 +6,18 @@ use tcod::colors;
 use tcod::bsp::{Bsp, TraverseOrder};
 
 use consts;
-use object::{actor, Object};
+use object::{self, actor, Object};
 use object::item::Item;
 use ai::Ai;
 
 pub const MAP_WIDTH: i32 = 80;
 pub const MAP_HEIGHT: i32 = 43;
 
-pub const FLOOR_WIDTH: i32 = 20;
-pub const FLOOR_HEIGHT: i32 = 20;
+pub const FLOOR_WIDTH: i32 = 30;
+pub const FLOOR_HEIGHT: i32 = 30;
 
 pub const ROOM_MAX_SIZE: i32 = 10;
-pub const ROOM_MIN_SIZE: i32 = 6;
+pub const ROOM_MIN_SIZE: i32 = 10;
 pub const MAX_ROOMS: i32 = 30;
 
 pub const MAX_ROOM_MONSTERS: i32 = 3;
@@ -26,20 +26,28 @@ pub const MAX_ROOM_ITEMS:i32 = 4;
 #[derive(Debug, RustcEncodable, RustcDecodable)]
 pub struct Tile {
     pub explored: bool,
+    pub actor_blocks: object::Blocks,
+    pub actor_blocks_view: object::Blocks,
     pub items: Vec<Object>,
 }
 
 impl Tile {
     pub fn new(x: i32, y: i32) -> Self {
         let concrete = Object::new(x, y, ' ', "concrete floor",
-                                   colors::GREY, false, false);
-        Tile{ explored: false, items: vec![concrete],}
+                                   colors::GREY, object::Blocks::No,
+                                   object::Blocks::No);
+        Tile{ actor_blocks: object::Blocks::No,
+              actor_blocks_view: object::Blocks::No,
+              explored: false,
+              items: vec![concrete],}
     }
 
     pub fn wall(x: i32, y: i32) -> Self {
         let mut tile = Tile::new(x, y);
         let drywall = Object::new(x, y, ' ', "drywall",
-                                   colors::DARKEST_GREY, true, true);
+                                  colors::DARKEST_GREY,
+                                  object::Blocks::Full,
+                                  object::Blocks::Full);
         tile.items.push(drywall);
         tile
     }
@@ -47,16 +55,20 @@ impl Tile {
 //         object.blocks && object.pos() == (x, y)
 //     })
 
-    pub fn is_blocked(&self) -> bool {
-        self.items.iter().any(|item| {
-            item.blocks
-        })
+    pub fn is_blocked(&self) -> object::Blocks {
+        let mut blocks = self.actor_blocks;
+        for item in &self.items {
+            blocks = cmp::max(blocks, item.blocks);
+        }
+        blocks
     }
 
-    pub fn blocks_view(&self) -> bool {
-        self.items.iter().any(|item| {
-            item.blocks_view
-        })
+    pub fn blocks_view(&self) -> object::Blocks {
+        let mut blocks_view = self.actor_blocks_view;
+        for item in &self.items {
+            blocks_view = cmp::max(blocks_view, item.blocks_view);
+        }
+        blocks_view
     }
 }
 
@@ -89,25 +101,7 @@ impl Rect {
     }
 }
 
-// pub fn is_blocked(x: i32, y: i32, map: &Map, objects: &[Object]) -> bool {
-//     // first test the map tile
-//     if map[x as usize][y as usize].is_blocked() {
-//         return true;
-//     }
-//     // now check for any blocking objects
-//     objects.iter().any(|object| {
-//         object.blocks && object.pos() == (x, y)
-//     })
-// }
-
-// fn create_room(room: Rect, map: &mut Map) {
-//     for x in (room.x1 + 1)..room.x2 {
-//         for y in (room.y1 + 1)..room.y2 {
-//             map[x as usize][y as usize] = Tile::empty();
-//         }
-//     }
-// }
-fn create_room2(room: &mut Bsp, floor: &mut Map) {
+fn create_room(room: &mut Bsp, floor: &mut Map) {
     for x in (room.x + 1)..room.x + room.w {
         for y in (room.y + 1)..room.y + room.h {
             floor[x as usize][y as usize] = Tile::new(x, y);
@@ -130,7 +124,7 @@ fn create_v_tunnel(y1: i32, y2: i32, x: i32, map: &mut Map) {
 fn vline_up(x: i32, y: i32, floor: &mut Map){
     let mut new_y = y;
     while new_y >= 1 &&
-        floor[x as usize][new_y as usize].is_blocked() == true {
+        floor[x as usize][new_y as usize].is_blocked() == object::Blocks::Full {
         floor[x as usize][new_y as usize] = Tile::new(x, new_y);
         new_y -= 1;
     }
@@ -139,7 +133,7 @@ fn vline_up(x: i32, y: i32, floor: &mut Map){
 fn vline_down(x: i32, y: i32, floor: &mut Map){
     let mut new_y = y;
     while new_y < FLOOR_HEIGHT  - 1&&
-        floor[x as usize][new_y as usize].is_blocked() == true {
+        floor[x as usize][new_y as usize].is_blocked() == object::Blocks::Full {
         floor[x as usize][new_y as usize] = Tile::new(x, new_y);
         new_y += 1;
     }
@@ -148,7 +142,7 @@ fn vline_down(x: i32, y: i32, floor: &mut Map){
 fn hline_left(x: i32, y: i32, floor: &mut Map) {
     let mut new_x = x;
     while new_x >= 1 &&
-        floor[new_x as usize][y as usize].is_blocked() == true {
+        floor[new_x as usize][y as usize].is_blocked() == object::Blocks::Full {
         floor[new_x as usize][y as usize] = Tile::new(new_x, y);
         new_x -= 1
     }
@@ -157,7 +151,7 @@ fn hline_left(x: i32, y: i32, floor: &mut Map) {
 fn hline_right(x: i32, y: i32, floor: &mut Map) {
     let mut new_x = x;
     while new_x < FLOOR_WIDTH - 1 &&
-        floor[new_x as usize][y as usize].is_blocked() == true {
+        floor[new_x as usize][y as usize].is_blocked() == object::Blocks::Full {
         floor[new_x as usize][y as usize] = Tile::new(new_x, y);
         new_x += 1
     }
@@ -248,7 +242,7 @@ fn traverse_node(node: &mut Bsp, mut floor: &mut Map) -> bool {
         node.w = maxx - minx + 1;
         node.h = maxy - miny + 1;
 
-        create_room2(node, floor);
+        create_room(node, floor);
     } else {
         if let (Some(left), Some(right)) = (node.left(), node.right()) {
             node.x = cmp::min(left.x, right.x);
@@ -314,9 +308,9 @@ pub fn make_floor(actors: &mut Vec<Object>) -> Map {
     }
     println!("{:?}", floor);
     // let mut rooms = vec![];
-
+    let rooms = rand::thread_rng().gen_range(4, 8);
     let mut bsp = Bsp::new_with_size(0, 0, FLOOR_WIDTH, FLOOR_HEIGHT);
-    bsp.split_recursive(None, 10, 6, 6, 1.5, 1.5);
+    bsp.split_recursive(None, rooms, ROOM_MIN_SIZE, ROOM_MIN_SIZE, 1.25, 1.25);
     bsp.traverse(TraverseOrder::InvertedLevelOrder, |node| {
         traverse_node(node, &mut floor)
     });

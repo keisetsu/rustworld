@@ -12,6 +12,14 @@ pub mod item;
 use ai::Ai;
 use log::{self, MessageLog};
 
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Ord, Eq,
+         RustcEncodable, RustcDecodable)]
+pub enum Blocks {
+    No,
+    Half,
+    Full
+}
+
 #[derive(Debug, RustcEncodable, RustcDecodable)]
 pub struct Object {
     pub x: i32,
@@ -19,8 +27,8 @@ pub struct Object {
     pub symbol: char,
     pub color: Color,
     pub name: String,
-    pub blocks: bool,
-    pub blocks_view: bool,
+    pub blocks: Blocks,
+    pub blocks_view: Blocks,
     pub alive: bool,
     pub fighter: Option<actor::Fighter>,
     pub ai: Option<Ai>,
@@ -30,7 +38,8 @@ pub struct Object {
 
 impl Object {
     pub fn new(x: i32, y: i32, symbol: char, name: &str,
-               color: Color, blocks: bool, blocks_view: bool) -> Self {
+               color: Color, blocks: Blocks,
+               blocks_view: Blocks) -> Self {
         Object {
             x: x,
             y: y,

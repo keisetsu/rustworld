@@ -10,7 +10,7 @@ use std::error::Error;
 use ai;
 use consts;
 use keys;
-use object::actor;
+use object::{self, actor};
 use map::{self, Map};
 use log;
 use log::MessageLog;
@@ -54,7 +54,8 @@ pub fn load_game() -> Result<(Vec<Object>, Game), Box<Error>> {
 
 pub fn new_game(game_ui: &mut ui::Ui) -> (Vec<Object>, Game) {
 
-    let mut player = Object::new(4, 4, '@', "player", colors::WHITE, true, false);
+    let mut player = Object::new(4, 4, '@', "player", colors::WHITE,
+                                 object::Blocks::Full, object::Blocks::No);
     player.alive = true;
     player.fighter = Some(actor::Fighter{
         max_hp: 30, hp: 30, defense: 2, power: 5,
