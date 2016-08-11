@@ -29,7 +29,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
         ///////////////////////////////////////////////////
         // Up
         ///////////////////////////////////////////////////
-        (Key { code: KeyCode::Up, .. }, true) |
+        (Key { code: KeyCode::Up, ctrl: false, alt: false, .. }, true) |
         (Key { code: KeyCode::NumPad8, ..}, true) |
         (Key { printable: 'k', ..}, true) => {
             actor::player_move_or_attack(0, -1, game, objects);
@@ -38,8 +38,8 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
         ///////////////////////////////////////////////////
         // Down
         ///////////////////////////////////////////////////
-        (Key { code: KeyCode::Down, .. }, true) |
-        (Key { code: KeyCode::NumPad2, ..}, true) |
+        (Key { code: KeyCode::Down, ctrl: false, alt: false,.. }, true) |
+        (Key { code: KeyCode::NumPad2, ctrl: false, alt: false, ..}, true) |
         (Key { printable: 'j', ..}, true) => {
             actor::player_move_or_attack(0, 1, game, objects);
             TookTurn
@@ -47,17 +47,17 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
         ///////////////////////////////////////////////////
         // Left
         ///////////////////////////////////////////////////
-        (Key { code: KeyCode::Left, .. }, true) |
-        (Key { code: KeyCode::NumPad4, ..}, true) |
-        (Key { printable: 'h', ..}, true) => {
+        (Key { code: KeyCode::Left, ctrl: false, alt: false, .. }, true) |
+        (Key { code: KeyCode::NumPad4, ctrl: false, alt: false, ..}, true) |
+        (Key { printable: 'h', ctrl: false, alt: false, ..}, true) => {
             actor::player_move_or_attack(-1, 0, game, objects);
             TookTurn
         }
         ///////////////////////////////////////////////////
         // Right
         ///////////////////////////////////////////////////
-        (Key { code: KeyCode::Right, .. }, true) |
-        (Key { code: KeyCode::NumPad6, ..}, true) |
+        (Key { code: KeyCode::Right, ctrl: false, alt: false, .. }, true) |
+        (Key { code: KeyCode::NumPad6, ctrl: false, alt: false, ..}, true) |
         (Key { printable: 'l', ..}, true) => {
             actor::player_move_or_attack(1, 0, game, objects);
             TookTurn
@@ -123,7 +123,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
             }
             DidntTakeTurn
         }
-        (Key { printable: 'i', .. }, true) => {
+        (Key { printable: 'i', ctrl: false, alt: false, .. }, true) => {
             let inventory_index = inventory_menu(
                 &mut game.inventory,
                 "Press the key next to an item to use it, \
@@ -134,7 +134,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
             }
             DidntTakeTurn
         }
-        (Key { printable: 'd', .. }, true) => {
+        (Key { printable: 'd', ctrl: false, alt: false, .. }, true) => {
             let inventory_index = inventory_menu(
                 &mut game.inventory,
                 "Press the key next to an item to drop it, \
@@ -145,7 +145,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
             }
             DidntTakeTurn
         }
-        (Key { printable: '>', .. }, true) => {
+        (Key { printable: '>', ctrl: false, alt: false, .. }, true) => {
             let player_on_stairs = objects.iter().any(
                 |object| {
                     object.pos() == objects[consts::PLAYER].pos() &&

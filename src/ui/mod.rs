@@ -112,11 +112,14 @@ pub fn render_all(game_ui: &mut Ui, game: &mut Game, objects: &[Object],
         game_ui.fov.compute_fov(player.x, player.y, consts::TORCH_RADIUS,
                              consts::FOV_LIGHT_WALLS, consts::FOV_ALGO);
 
-        for y in 0..map::FLOOR_HEIGHT {
-            for x in 0..map::FLOOR_WIDTH {
+        for x in 0..map::FLOOR_WIDTH {
+            for y in 0..map::FLOOR_HEIGHT {
+                let game_tile = &mut game.map[x as usize][y as usize];
                 let visible = game_ui.fov.is_in_fov(x, y);
-                // let visible = true;
-                let wall = game.map[x as usize][y as usize].blocks_view();
+                let visible = true;
+
+                // let wall = game.map[x as usize][y as usize].blocks_view();
+                let wall = game_tile.blocks_view();
                 let color = match(visible, wall) {
                     (false, object::Blocks::Full) => consts::COLOR_DARK_WALL,
                     (false, object::Blocks::No) => consts::COLOR_DARK_GROUND,
@@ -124,20 +127,24 @@ pub fn render_all(game_ui: &mut Ui, game: &mut Game, objects: &[Object],
                     (true, object::Blocks::No) => consts::COLOR_LIGHT_GROUND,
                     (_, _) => consts::COLOR_LIGHT_GROUND,
                 };
-
                 let explored =
-                    &mut game.map[x as usize][y as usize].explored;
+                    &mut game_tile.explored;
                 if visible {
+                    for item in &game_tile.items {
+                        item.draw(&mut game_ui.con);
+                    }
+
                     *explored = true;
                 }
 
                 if *explored {
                     game_ui.con.set_char_background(x, y, color,
-                                            BackgroundFlag::Set);
+                                                    BackgroundFlag::Set);
                 }
             }
         }
     }
+
 
     let mut to_draw: Vec<_> = objects.iter()
         .filter(|o| game_ui.fov.is_in_fov(o.x, o.y)).collect();
