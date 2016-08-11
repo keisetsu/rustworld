@@ -10,7 +10,7 @@ use tcod::console::{
     TextAlignment,
 };
 use tcod::input::Mouse;
-use tcod::map::Map as FovMap;
+use tcod::map::{Map as FovMap, FovAlgorithm};
 use tcod::colors::{self, Color};
 
 use std::ascii::AsciiExt;
@@ -34,6 +34,16 @@ const COLOR_ALERT: Color = colors::RED;
 const COLOR_INFO: Color = colors::LIGHTER_GREY;
 const COLOR_SUCCESS: Color = colors::GREEN;
 const COLOR_STATUS_CHANGE: Color = colors::WHITE;
+
+const COLOR_DARK_WALL: Color = colors::BLACK;
+const COLOR_LIGHT_WALL: Color = colors::DARKEST_GREY;
+const COLOR_DARK_GROUND: Color = colors::DARKER_GREY;
+const COLOR_LIGHT_GROUND: Color = colors::GREY;
+
+const FOV_ALGO: FovAlgorithm = FovAlgorithm::Shadow;
+const FOV_LIGHT_WALLS: bool = true;
+const TORCH_RADIUS: i32 = 3;
+
 
 pub fn initialize(title: &str) -> Ui {
     let root = Root::initializer()
@@ -109,23 +119,23 @@ pub fn render_all(game_ui: &mut Ui, game: &mut Game, objects: &[Object],
               fov_recompute: bool) {
     if fov_recompute {
         let player = &objects[consts::PLAYER];
-        game_ui.fov.compute_fov(player.x, player.y, consts::TORCH_RADIUS,
-                             consts::FOV_LIGHT_WALLS, consts::FOV_ALGO);
+        game_ui.fov.compute_fov(player.x, player.y, TORCH_RADIUS,
+                             FOV_LIGHT_WALLS, FOV_ALGO);
 
         for x in 0..map::FLOOR_WIDTH {
             for y in 0..map::FLOOR_HEIGHT {
                 let game_tile = &mut game.map[x as usize][y as usize];
                 let visible = game_ui.fov.is_in_fov(x, y);
-                let visible = true;
+                //let visible = true;
 
                 // let wall = game.map[x as usize][y as usize].blocks_view();
                 let wall = game_tile.blocks_view();
                 let color = match(visible, wall) {
-                    (false, object::Blocks::Full) => consts::COLOR_DARK_WALL,
-                    (false, object::Blocks::No) => consts::COLOR_DARK_GROUND,
-                    (true, object::Blocks::Full) => consts::COLOR_LIGHT_WALL,
-                    (true, object::Blocks::No) => consts::COLOR_LIGHT_GROUND,
-                    (_, _) => consts::COLOR_LIGHT_GROUND,
+                    (false, object::Blocks::Full) => COLOR_DARK_WALL,
+                    (false, object::Blocks::No) => COLOR_DARK_GROUND,
+                    (true, object::Blocks::Full) => COLOR_LIGHT_WALL,
+                    (true, object::Blocks::No) => COLOR_LIGHT_GROUND,
+                    (_, _) => COLOR_LIGHT_GROUND,
                 };
                 let explored =
                     &mut game_tile.explored;
