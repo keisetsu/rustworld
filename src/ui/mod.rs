@@ -126,7 +126,7 @@ pub fn render_all(game_ui: &mut Ui, game: &mut Game, objects: &[Object],
             for y in 0..map::FLOOR_HEIGHT {
                 let game_tile = &mut game.map[x as usize][y as usize];
                 let visible = game_ui.fov.is_in_fov(x, y);
-                //let visible = true;
+                // let visible = true;
 
                 // let wall = game.map[x as usize][y as usize].blocks_view();
                 let wall = game_tile.blocks_view();

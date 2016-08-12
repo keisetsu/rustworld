@@ -112,10 +112,11 @@ fn create_room(room: &mut Bsp, floor: &mut Map) {
 
 // place_objects(mut &objects, rooms, &mut floor);
 
-fn place_objects(objects: &mut Vec<Object>, floor: usize, rooms: Vec<Rect>, map: &mut Map) {
+fn place_objects(objects: &mut Vec<Object>, floor: usize,
+                 rooms: Vec<Rect>, map: &mut Map) {
     if floor == 1 {
         let mut stairs = (0, 0);
-        for room in rooms {
+        for room in &rooms {
             if room.x1 == 1 && room.y1 == 1 {
                 make_door(0, room.y2/ 2, map);
                 objects[consts::PLAYER].set_pos(1, room.y2 / 2);
@@ -133,6 +134,19 @@ fn place_objects(objects: &mut Vec<Object>, floor: usize, rooms: Vec<Rect>, map:
                                     object::Blocks::No,
                                     object::Blocks::Half);
         map[stairs_x as usize][stairs_y as usize].items.push(stairs_up);
+    }
+
+    for _ in 0..rand::thread_rng().gen_range(1,3) {
+        let room = rooms[rand::thread_rng().gen_range(0, rooms.len() - 1)];
+        let brick_x = room.x1 + 1;
+        let brick_y = room.y1 + 2;
+
+        let brick = Object::new(brick_x, brick_y, 'b', "brick",
+                                colors::RED,
+                                object::Blocks::No,
+                                object::Blocks::No);
+        map[brick_x as usize][brick_y as usize].items.push(brick);
+        println!("Brick! {}, {}", brick_x, brick_y);
     }
 
 }

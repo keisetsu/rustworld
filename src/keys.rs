@@ -13,6 +13,7 @@ use game::PlayerAction::*;
 use ui::{Ui, inventory_menu};
 
 use consts;
+use log::MessageLog;
 use object::Object;
 use object::actor;
 
@@ -113,6 +114,14 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
         // Pick up
         ///////////////////////////////////////////////////
         (Key { printable: ',', ..}, true) => {
+            let (player_x, player_y) = objects[consts::PLAYER].pos();
+            let names = game.map[player_x as usize][player_y as usize]
+                .items.iter().
+                map(|obj| obj.name.clone())
+                .collect::<Vec<_>>();
+
+            game.log.info(names.join(", "));
+
             let item_id = objects.iter().position(
                 |object| {
                     object.pos() == objects[consts::PLAYER].pos() &&
@@ -146,13 +155,16 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
             DidntTakeTurn
         }
         (Key { printable: '>', ctrl: false, alt: false, .. }, true) => {
-            let player_on_stairs = objects.iter().any(
-                |object| {
-                    object.pos() == objects[consts::PLAYER].pos() &&
-                        object.name == "stairs up"
-                });
+            // let player_on_stairs = game.map.iter().any(
+            //     |object| {
+            //         object.pos() == objects[consts::PLAYER].pos() &&
+            //             object.name == "stairs up"
+            //     });
+            let (player_x, player_y) = objects[consts::PLAYER].pos();
+            let player_on_stairs = game.map[player_x as usize][player_y as usize]
+                .items.iter().any(|object| object.name == "stairs up");
             if player_on_stairs {
-                game::next_level(game_ui, objects, game);
+                game.log.success("Go upstairs!");
             }
             DidntTakeTurn
         }
