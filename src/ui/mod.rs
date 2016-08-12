@@ -67,13 +67,13 @@ pub fn initialize(title: &str) -> Ui {
 
 }
 
-pub fn initialize_fov(map: &Map, game_ui: &mut Ui) {
+pub fn initialize_fov(map: &Map, objects: &[Object], game_ui: &mut Ui) {
     for y in 0..map::FLOOR_HEIGHT {
         for x in 0..map::FLOOR_WIDTH {
             game_ui.fov.set(x, y,
-                         map[x as usize][y as usize].blocks_view() !=
+                         map::blocks_view(x, y, map, objects) !=
                             object::Blocks::Full,
-                         map[x as usize][y as usize].is_blocked() !=
+                            map::is_blocked(x, y,  map, objects) !=
                             object::Blocks::Full
             );
         }
@@ -124,12 +124,12 @@ pub fn render_all(game_ui: &mut Ui, game: &mut Game, objects: &[Object],
 
         for x in 0..map::FLOOR_WIDTH {
             for y in 0..map::FLOOR_HEIGHT {
+                let wall = map::blocks_view(x, y, & game.map, objects);
                 let game_tile = &mut game.map[x as usize][y as usize];
                 let visible = game_ui.fov.is_in_fov(x, y);
                 // let visible = true;
 
                 // let wall = game.map[x as usize][y as usize].blocks_view();
-                let wall = game_tile.blocks_view();
                 let color = match(visible, wall) {
                     (false, object::Blocks::Full) => COLOR_DARK_WALL,
                     (false, object::Blocks::No) => COLOR_DARK_GROUND,
@@ -308,7 +308,7 @@ pub fn main_menu(game_ui: &mut Ui) {
             Some(1) => {
                 match game::load_game() {
                     Ok((mut objects, mut game)) => {
-                        initialize_fov(&game.map, game_ui);
+                        initialize_fov(&game.map, &objects, game_ui);
                         game::play_game(&mut objects, &mut game, game_ui);
                     }
                     Err(_e) => {

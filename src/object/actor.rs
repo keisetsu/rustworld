@@ -6,7 +6,7 @@ use log;
 use log::MessageLog;
 use object::{self, Object};
 use object::item::{self, Item};
-use map::Map;
+use map::{self, Map};
 use ui::Ui;
 use utils;
 
@@ -38,7 +38,7 @@ pub struct Fighter {
 
 pub fn move_by(id: usize, dx: i32, dy: i32, map: &Map, objects: &mut[Object]) {
     let (x, y) = objects[id].pos();
-    if map[(x + dx) as usize][(y + dy) as usize].is_blocked() == object::Blocks::No {
+    if map::is_blocked(x + dx, y + dy, map, objects) == object::Blocks::No {
         objects[id].set_pos(x + dx, y + dy);
     }
 }

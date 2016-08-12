@@ -69,7 +69,7 @@ pub fn new_game(game_ui: &mut ui::Ui) -> (Vec<Object>, Game) {
         inventory: vec![],
     };
 
-    ui::initialize_fov(&game.map, game_ui);
+    ui::initialize_fov(&game.map, &objects, game_ui);
 
     game.log.info("Meow!");
 
@@ -121,5 +121,5 @@ pub fn play_game(objects: &mut Vec<Object>, game: &mut Game, game_ui: &mut ui::U
 
 pub fn next_level(game_ui: &mut ui::Ui, objects: &mut Vec<Object>, game: &mut Game) {
     game.map = map::make_floor(objects);
-    ui::initialize_fov(&game.map, game_ui);
+    ui::initialize_fov(&game.map, &objects, game_ui);
 }

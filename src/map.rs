@@ -26,9 +26,8 @@ pub const MAX_ROOM_ITEMS:i32 = 4;
 
 #[derive(Debug, RustcEncodable, RustcDecodable)]
 pub struct Tile {
+    pub floor: Option<Object>,
     pub explored: bool,
-    pub actor_blocks: object::Blocks,
-    pub actor_blocks_view: object::Blocks,
     pub items: Vec<Object>,
 }
 
@@ -37,41 +36,96 @@ impl Tile {
         let concrete = Object::new(x, y, ' ', "concrete floor",
                                    colors::GREY, object::Blocks::No,
                                    object::Blocks::No);
-        Tile{ actor_blocks: object::Blocks::No,
-              actor_blocks_view: object::Blocks::No,
-              explored: false,
-              items: vec![concrete],}
+        Tile{
+            floor: Some(concrete),
+            explored: false,
+            items: vec![],}
     }
 
-    pub fn wall(x: i32, y: i32) -> Self {
-        let mut tile = Tile::new(x, y);
-        let drywall = Object::new(x, y, ' ', "drywall",
-                                  colors::DARKEST_GREY,
-                                  object::Blocks::Full,
-                                  object::Blocks::Full);
-        tile.items.push(drywall);
-        tile
-    }
+    // pub fn wall(x: i32, y: i32) -> Self {
+    //     let mut tile = Tile::new(x, y);
+    //     let drywall = Object::new(x, y, ' ', "drywall",
+    //                               colors::DARKEST_GREY,
+    //                               object::Blocks::Full,
+    //                               object::Blocks::Full);
+    //     tile.items.push(drywall);
+    //     tile
+    // }
 //     objects.iter().any(|object| {
 //         object.blocks && object.pos() == (x, y)
 //     })
 
-    pub fn is_blocked(&self) -> object::Blocks {
-        let mut blocks = self.actor_blocks;
-        for item in &self.items {
-            blocks = cmp::max(blocks, item.blocks);
+    // pub fn is_blocked(&self) -> object::Blocks {
+
+    //     for item in &self.items {
+    //         blocks = cmp::max(blocks, item.blocks);
+    //     }
+    //     blocks
+    // }
+
+    // pub fn blocks_view(&self) -> object::Blocks {
+    //     let mut blocks_view = self.actor_blocks_view;
+    //     for item in &self.items {
+    //         blocks_view = cmp::max(blocks_view, item.blocks_view);
+    //     }
+    //     blocks_view
+    // }
+}
+
+pub fn is_blocked(x: i32, y: i32, map: &Map, objects: &[Object]) -> object::Blocks {
+    // Because actors are stored in a separate place from the map, we need
+    // to check both for actors marked as being in a place on the map,
+    // as well as all objects in the map location to see if they block
+
+    // If only one thing blocks fully we know nothing new can move
+    // onto that tile, so we are done. If something only partially blocks, we
+    // have to keep checking in case there is something fully blocking.
+    let mut blocks = object::Blocks::No;
+    for actor in objects {
+        if actor.x == x && actor.y == y {
+            blocks = cmp::max(blocks, actor.blocks);
+            if blocks == object::Blocks::Full {
+                return blocks
+            }
         }
-        blocks
     }
 
-    pub fn blocks_view(&self) -> object::Blocks {
-        let mut blocks_view = self.actor_blocks_view;
-        for item in &self.items {
-            blocks_view = cmp::max(blocks_view, item.blocks_view);
+    for item in &map[x as usize][y as usize].items {
+        blocks = cmp::max(blocks, item.blocks);
+        if blocks == object::Blocks::Full {
+            return blocks
         }
-        blocks_view
     }
+    blocks
 }
+
+pub fn blocks_view(x: i32, y: i32, map: &Map, objects: &[Object]) -> object::Blocks {
+    // Because actors are stored in a separate place from the map, we need
+    // to check both for actors marked as being in a place on the map,
+    // as well as all objects in the map location to see if they block
+
+    // If only one thing blocks fully we know nothing can see through that
+    // tile, so we are done. If something only partially blocks, we
+    // have to keep checking in case there is something fully blocking.
+    let mut blocks = object::Blocks::No;
+    for actor in objects {
+        if actor.x == x && actor.y == y {
+            blocks = cmp::max(blocks, actor.blocks_view);
+            if blocks == object::Blocks::Full {
+                return blocks
+            }
+        }
+    }
+
+    for item in &map[x as usize][y as usize].items {
+        blocks = cmp::max(blocks, item.blocks_view);
+        if blocks == object::Blocks::Full {
+            return blocks
+        }
+    }
+    blocks
+}
+
 
 pub type Map = Vec<Vec<Tile>>;
 //pub type Floor = Vec<Vec<Vec<Object>>>;
@@ -221,7 +275,7 @@ fn make_door(x: i32, y: i32, map: &mut Map) {
                                   colors::SEPIA,
                                   object::Blocks::No,
                                   object::Blocks::Full);
-        map[x as usize][y as usize].items[1] = door;
+        map[x as usize][y as usize].items[0] = door;
 }
 
 fn traverse_node(node: &mut Bsp, mut rooms: &mut Vec<Rect>, mut floor: &mut Map) -> bool {
@@ -266,8 +320,13 @@ pub fn make_floor(mut actors: &mut Vec<Object>) -> Map {
     for x in 0..FLOOR_WIDTH {
         floor.push(vec![]);
         for y in 0..FLOOR_HEIGHT {
-            let mut tile: Tile = Tile::wall(x, y);
-            floor[x as usize].push(tile);
+            let mut wall_tile: Tile = Tile::new(x, y);
+            let brick_wall = Object::new(x, y, ' ', "brick wall",
+                                      colors::DARKEST_GREY,
+                                      object::Blocks::Full,
+                                      object::Blocks::Full);
+            wall_tile.items.push(brick_wall);
+            floor[x as usize].push(wall_tile);
         }
     }
     let mut rooms = vec![];
