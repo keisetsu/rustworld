@@ -5,14 +5,12 @@ use std::fs::File;
 use std::error::Error;
 use std::io::Read;
 
-pub fn load_objects(filename: &str) {
+pub fn load_objects(filename: &str) -> Result<(), Box<Error>> {
 
     let mut json = String::new();
-    let mut file = File::open(filename).unwrap();
-    file.read_to_string(&mut json).unwrap();
-    // let result = try! { json::decode::<(Vec<Object>, Game)>(&json_save_state) };
-    let objects_json = Json::from_str(&json).unwrap();
-
+    let mut file = try! { File::open(filename) };
+    try! { file.read_to_string(&mut json) };
+    let objects_json = try! {Json::from_str(&json)};
     let objects = objects_json.as_object().unwrap();
 
     for (object_id, object_json) in objects {
@@ -22,4 +20,5 @@ pub fn load_objects(filename: &str) {
             println!("  {}: {}", key, value);
         }
     }
+    Ok(())
 }
