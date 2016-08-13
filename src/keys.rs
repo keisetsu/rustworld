@@ -16,8 +16,8 @@ use object::Object;
 use object::actor;
 
 pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
-               objects: &mut Vec<Object>) -> PlayerAction {
-    let player_alive = objects[consts::PLAYER].alive;
+               actors: &mut Vec<Object>) -> PlayerAction {
+    let player_alive = actors[consts::PLAYER].alive;
     match (key, player_alive) {
         // Exit: Ctrl+q
         (Key { printable: 'q', ctrl: true, .. }, _) => Exit,
@@ -31,7 +31,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
         (Key { code: KeyCode::Up, ctrl: false, alt: false, .. }, true) |
         (Key { code: KeyCode::NumPad8, ..}, true) |
         (Key { printable: 'k', ..}, true) => {
-            actor::player_move_or_attack(0, -1, game, objects);
+            actor::player_move_or_attack(0, -1, game, actors);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -40,7 +40,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
         (Key { code: KeyCode::Down, ctrl: false, alt: false,.. }, true) |
         (Key { code: KeyCode::NumPad2, ctrl: false, alt: false, ..}, true) |
         (Key { printable: 'j', ..}, true) => {
-            actor::player_move_or_attack(0, 1, game, objects);
+            actor::player_move_or_attack(0, 1, game, actors);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -49,7 +49,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
         (Key { code: KeyCode::Left, ctrl: false, alt: false, .. }, true) |
         (Key { code: KeyCode::NumPad4, ctrl: false, alt: false, ..}, true) |
         (Key { printable: 'h', ctrl: false, alt: false, ..}, true) => {
-            actor::player_move_or_attack(-1, 0, game, objects);
+            actor::player_move_or_attack(-1, 0, game, actors);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -58,7 +58,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
         (Key { code: KeyCode::Right, ctrl: false, alt: false, .. }, true) |
         (Key { code: KeyCode::NumPad6, ctrl: false, alt: false, ..}, true) |
         (Key { printable: 'l', ..}, true) => {
-            actor::player_move_or_attack(1, 0, game, objects);
+            actor::player_move_or_attack(1, 0, game, actors);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -67,7 +67,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
         (Key { code: KeyCode::Home, .. }, true) |
         (Key { code: KeyCode::NumPad7, ..}, true) |
         (Key { printable: 'y', ..}, true) => {
-            actor::player_move_or_attack(-1, -1, game, objects);
+            actor::player_move_or_attack(-1, -1, game, actors);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -76,7 +76,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
         (Key { code: KeyCode::PageUp, .. }, true) |
         (Key { code: KeyCode::NumPad9, ..}, true) |
         (Key { printable: 'u', ..}, true) => {
-            actor::player_move_or_attack(1, -1, game, objects);
+            actor::player_move_or_attack(1, -1, game, actors);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -85,7 +85,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
         (Key { code: KeyCode::End, .. }, true) |
         (Key { code: KeyCode::NumPad1, ..}, true) |
         (Key { printable: 'b', ..}, true) => {
-            actor::player_move_or_attack(-1, 1, game, objects);
+            actor::player_move_or_attack(-1, 1, game, actors);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -94,7 +94,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
         (Key { code: KeyCode::PageDown, .. }, true) |
         (Key { code: KeyCode::NumPad3, ..}, true) |
         (Key { printable: 'n', ..}, true) => {
-            actor::player_move_or_attack(1, 1, game, objects);
+            actor::player_move_or_attack(1, 1, game, actors);
             TookTurn
         }
         ///////////////////////////////////////////////////
@@ -112,7 +112,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
         // Pick up
         ///////////////////////////////////////////////////
         (Key { printable: ',', ..}, true) => {
-            let (player_x, player_y) = objects[consts::PLAYER].pos();
+            let (player_x, player_y) = actors[consts::PLAYER].pos();
             let names = game.map[player_x as usize][player_y as usize]
                 .items.iter().
                 map(|obj| obj.name.clone())
@@ -120,13 +120,13 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
 
             game.log.info(names.join(", "));
 
-            let item_id = objects.iter().position(
+            let item_id = actors.iter().position(
                 |object| {
-                    object.pos() == objects[consts::PLAYER].pos() &&
+                    object.pos() == actors[consts::PLAYER].pos() &&
                         object.item.is_some()
                 });
             if let Some(item_id) = item_id {
-                actor::pick_item_up(item_id, game, objects);
+                actor::pick_item_up(item_id, game, actors);
             }
             DidntTakeTurn
         }
@@ -137,7 +137,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
                  or any other to cancel.\n",
                 &mut game_ui.root);
             if let Some(inventory_index) = inventory_index {
-                actor::use_item(game_ui, game, inventory_index, objects);
+                actor::use_item(game_ui, game, inventory_index, actors);
             }
             DidntTakeTurn
         }
@@ -148,17 +148,17 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
                  or any other to cancel.\n",
                 &mut game_ui.root);
             if let Some(inventory_index) = inventory_index {
-                actor::drop_item(inventory_index, game, objects);
+                actor::drop_item(inventory_index, game, actors);
             }
             DidntTakeTurn
         }
         (Key { printable: '>', ctrl: false, alt: false, .. }, true) => {
             // let player_on_stairs = game.map.iter().any(
             //     |object| {
-            //         object.pos() == objects[consts::PLAYER].pos() &&
+            //         object.pos() == actors[consts::PLAYER].pos() &&
             //             object.name == "stairs up"
             //     });
-            let (player_x, player_y) = objects[consts::PLAYER].pos();
+            let (player_x, player_y) = actors[consts::PLAYER].pos();
             let player_on_stairs = game.map[player_x as usize][player_y as usize]
                 .items.iter().any(|object| object.name == "stairs up");
             if player_on_stairs {

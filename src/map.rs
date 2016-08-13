@@ -72,7 +72,7 @@ impl Tile {
     // }
 }
 
-pub fn is_blocked(x: i32, y: i32, map: &Map, objects: &[Object]) -> object::Blocks {
+pub fn is_blocked(x: i32, y: i32, map: &Map, actors: &[Object]) -> object::Blocks {
     // Because actors are stored in a separate place from the map, we need
     // to check both for actors marked as being in a place on the map,
     // as well as all objects in the map location to see if they block
@@ -81,7 +81,7 @@ pub fn is_blocked(x: i32, y: i32, map: &Map, objects: &[Object]) -> object::Bloc
     // onto that tile, so we are done. If something only partially blocks, we
     // have to keep checking in case there is something fully blocking.
     let mut blocks = object::Blocks::No;
-    for actor in objects {
+    for actor in actors {
         if actor.x == x && actor.y == y {
             blocks = cmp::max(blocks, actor.blocks);
             if blocks == object::Blocks::Full {
@@ -99,16 +99,16 @@ pub fn is_blocked(x: i32, y: i32, map: &Map, objects: &[Object]) -> object::Bloc
     blocks
 }
 
-pub fn blocks_view(x: i32, y: i32, map: &Map, objects: &[Object]) -> object::Blocks {
+pub fn blocks_view(x: i32, y: i32, map: &Map, actors: &[Object]) -> object::Blocks {
     // Because actors are stored in a separate place from the map, we need
     // to check both for actors marked as being in a place on the map,
-    // as well as all objects in the map location to see if they block
+    // as well as all actors in the map location to see if they block
 
     // If only one thing blocks fully we know nothing can see through that
     // tile, so we are done. If something only partially blocks, we
     // have to keep checking in case there is something fully blocking.
     let mut blocks = object::Blocks::No;
-    for actor in objects {
+    for actor in actors {
         if actor.x == x && actor.y == y {
             blocks = cmp::max(blocks, actor.blocks_view);
             if blocks == object::Blocks::Full {
@@ -164,16 +164,16 @@ fn create_room(room: &mut Bsp, floor: &mut Map) {
     }
 }
 
-// place_objects(mut &objects, rooms, &mut floor);
+// place_actors(mut &actors, rooms, &mut floor);
 
-fn place_objects(objects: &mut Vec<Object>, floor: usize,
+fn place_actors(actors: &mut Vec<Object>, floor: usize,
                  rooms: Vec<Rect>, map: &mut Map) {
     if floor == 1 {
         let mut stairs = (0, 0);
         for room in &rooms {
             if room.x1 == 1 && room.y1 == 1 {
                 make_door(0, room.y2/ 2, map);
-                objects[consts::PLAYER].set_pos(1, room.y2 / 2);
+                actors[consts::PLAYER].set_pos(1, room.y2 / 2);
             } else if room.y2 == FLOOR_HEIGHT - 1 || room.x2 == FLOOR_WIDTH - 1 {
                 if stairs == (0, 0) || rand::random() {
                     let stairs_x = room.x1 + ((room.x2 - room.x1)/2);
@@ -205,7 +205,7 @@ fn place_objects(objects: &mut Vec<Object>, floor: usize,
 
 }
 
-// fn place_objects(room: Rect, map: &Map, objects: &mut Vec<Object>) {
+// fn place_actors(room: Rect, map: &Map, actors: &mut Vec<Object>) {
 //     let num_monsters = rand::thread_rng().gen_range(0, MAX_ROOM_MONSTERS + 1);
 
 //     for _ in 0..num_monsters {
@@ -232,7 +232,7 @@ fn place_objects(objects: &mut Vec<Object>, floor: usize,
 //                 zombie
 //             };
 //             monster.alive = true;
-//             objects.push(monster);
+//             actors.push(monster);
 //         }
 //     }
 
@@ -266,7 +266,7 @@ fn place_objects(objects: &mut Vec<Object>, floor: usize,
 //                 object.item = Some(Item::Confuse);
 //                 object
 //             };
-//             objects.push(item);
+//             actors.push(item);
 //         }
 //     }
 // }
@@ -335,17 +335,17 @@ pub fn make_floor(mut actors: &mut Vec<Object>) -> Map {
     bsp.traverse(TraverseOrder::InvertedLevelOrder, |node| {
         traverse_node(node, &mut rooms, &mut floor)
     });
-    place_objects(&mut actors, 1, rooms, &mut floor);
+    place_actors(&mut actors, 1, rooms, &mut floor);
     floor
 }
 
-// pub fn make_map(objects: &mut Vec<Object>) -> Map {
+// pub fn make_map(actors: &mut Vec<Object>) -> Map {
 //     make_floor();
 //     let mut map = vec![vec![Tile::wall(); MAP_HEIGHT as usize];
 //                        MAP_WIDTH as usize];
 //     let mut rooms = vec![];
-//     assert_eq!(&objects[consts::PLAYER] as *const _, &objects[0] as *const _);
-//     objects.truncate(1);
+//     assert_eq!(&actors[consts::PLAYER] as *const _, &actors[0] as *const _);
+//     actors.truncate(1);
 
 //     for _ in 0..MAX_ROOMS {
 //         let w = rand::thread_rng().gen_range(ROOM_MIN_SIZE,
@@ -364,12 +364,12 @@ pub fn make_floor(mut actors: &mut Vec<Object>) -> Map {
 //         if !failed {
 
 //             create_room(new_room, &mut map);
-//             place_objects(new_room, &map, objects);
+//             place_actors(new_room, &map, actors);
 
 //             let (new_x, new_y) = new_room.center();
 
 //             if rooms.is_empty() {
-//                 objects[consts::PLAYER].set_pos(new_x, new_y);
+//                 actors[consts::PLAYER].set_pos(new_x, new_y);
 //             } else {
 //                 let (prev_x, prev_y) =
 //                     rooms[rooms.len() - 1].center();
@@ -393,6 +393,6 @@ pub fn make_floor(mut actors: &mut Vec<Object>) -> Map {
 //     let (last_room_x, last_room_y) = rooms[rooms.len() - 1].center();
 //     let stairs = Object::new(last_room_x, last_room_y, '>', "stairs up",
 //                              colors::WHITE, false);
-//     objects.push(stairs);
+//     actors.push(stairs);
 //     map
 // }
