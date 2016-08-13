@@ -1,4 +1,4 @@
-extern crate rustc_serialize;
+use rustc_serialize;
 
 use tcod::colors::Color;
 use tcod::console::{

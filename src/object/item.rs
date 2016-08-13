@@ -1,5 +1,4 @@
-extern crate rustc_serialize;
-extern crate tcod;
+use rustc_serialize;
 
 use tcod::input::{self, Event, KeyCode};
 

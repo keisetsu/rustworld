@@ -1,9 +1,7 @@
-extern crate rustc_serialize;
+use rustc_serialize;
 
-extern crate rand;
-use rand::Rng;
+use rand::{self, Rng};
 
-extern crate tcod;
 use tcod::map::Map as FovMap;
 
 use log::MessageLog;

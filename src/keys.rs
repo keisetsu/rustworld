@@ -1,5 +1,3 @@
-extern crate tcod;
-
 use tcod::input::{Key, KeyCode};
 
 use game::{
