@@ -82,6 +82,8 @@ pub fn play_game(actors: &mut Vec<Object>, game: &mut Game, game_ui: &mut ui::Ui
     let mut previous_player_position = (-1, -1);
     let mut key = Default::default();
 
+    object::load::load_objects("actors.json");
+
     while !game_ui.root.window_closed() {
         let fov_recompute = previous_player_position !=
             (actors[consts::PLAYER].pos());

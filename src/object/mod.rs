@@ -8,6 +8,7 @@ use tcod::console::{
 
 pub mod actor;
 pub mod item;
+pub mod load;
 
 use ai::Ai;
 use log::{self, MessageLog};
