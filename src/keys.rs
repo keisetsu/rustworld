@@ -123,7 +123,7 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
             let item_id = actors.iter().position(
                 |object| {
                     object.pos() == actors[consts::PLAYER].pos() &&
-                        object.item.is_some()
+                        object.function.is_some()
                 });
             if let Some(item_id) = item_id {
                 actor::pick_item_up(item_id, game, actors);

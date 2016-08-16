@@ -1,6 +1,48 @@
-{
-    "runner": {
+[{
+    "type_name": "ActorZombie",
+    "classes":
+    [{
         "name": "Runner zombie",
-        "speed": 2
-    }
+        "description": "A zombie with fast legs",
+        "blocks": "full",
+        "blocks_view": "no",
+        "symbol": "Z",
+        "color": [0, 255, 0],
+        "alive": true,
+        "base_chance": 50,
+        "context": "any",
+        "ai": null,
+        "item": null,
+        "inventory": null,
+        "object_type": "zombie"
+    },{
+        "name": "Chrysalis zombie",
+        "description": "A zombie that is still transforming",
+        "blocks": "full",
+        "blocks_view": "no",
+        "symbol": "Z",
+        "color": [255,0,255],
+        "alive": true,
+        "base_chance": 70,
+        "context": "any",
+        "ai": null,
+        "item": null,
+        "inventory": null,
+        "object_type": "zombie"
+    },{
+        "name": "Stalker zombie",
+        "description": "A zombie that is still transforming",
+        "blocks": "full",
+        "blocks_view": "no",
+        "symbol": "Z",
+        "color": [255,0,255],
+        "alive": true,
+        "base_chance": 10,
+        "context": "any",
+        "ai": null,
+        "item": null,
+        "inventory": null,
+        "object_type": "zombie"
+    }]
 }
+]

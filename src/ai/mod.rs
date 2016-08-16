@@ -14,7 +14,7 @@ use utils;
 
 use game::Game;
 
-#[derive(Debug, RustcEncodable, RustcDecodable)]
+#[derive(Clone, Debug, RustcEncodable, RustcDecodable)]
 pub enum Ai {
     Basic,
     Chrysalis,

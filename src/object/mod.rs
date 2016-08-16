@@ -1,3 +1,5 @@
+use std::fmt::{self, Debug, Display};
+
 use rustc_serialize;
 
 use tcod::colors::Color;
@@ -21,7 +23,105 @@ pub enum Blocks {
     Full
 }
 
-#[derive(Debug, RustcEncodable, RustcDecodable)]
+pub enum ObjectType{
+    Actor,
+    Item
+}
+
+// #[derive(Debug, PartialEq, Eq, Hash)]
+// pub enum ObjectType {
+//     ActorZombie,
+//     ItemAmmo,
+//     ItemDrink,
+//     ItemEnvironmental,
+//     ItemEnvironmentalWeapon,
+//     ItemFood,
+//     ItemHealth,
+//     ItemMeleeWeapon,
+//     ItemRangedWeapon,
+// }
+
+// impl fmt::Display for ObjectType {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         fmt::Debug::fmt(self, f)
+//     }
+// }
+
+const ACTOR_TYPES: &'static [ &'static str ] = &[ "ActorZombie" ];
+
+const ITEM_TYPES: &'static [ &'static str ] = &[
+    "ItemAmmo",
+    "ItemDrink",
+    "ItemEnvironmental",
+    "ItemEnvironmentalWeapon",
+    "ItemFood",
+    "ItemHealth",
+    "ItemMeleeWeapon",
+    "ItemRangedWeapon",
+];
+
+#[derive(Debug, Clone)]
+pub struct ObjectClass {
+//    pub object_type: String,
+    pub symbol: char,
+    pub name: String,
+    pub description: String,
+    pub context: String,
+    pub color: Color,
+    pub blocks: Blocks,
+    pub blocks_view: Blocks,
+    pub alive: bool,
+    pub fighter: Option<actor::Fighter>,
+    pub ai: Option<Ai>,
+    pub function: Option<item::Function>,
+    pub inventory: Option<Box<Vec<Object>>>,
+}
+
+impl ObjectClass {
+    pub fn new(symbol: char, name: &str,
+               description: &str, context: &str, color: Color,
+               blocks: Blocks, blocks_view: Blocks, alive: bool,
+               fighter: Option<actor::Fighter>,
+               ai: Option<Ai>,
+               function: Option<item::Function>,
+               inventory: Option<Box<Vec<Object>>>)
+               -> Self {
+        ObjectClass {
+            ai: ai,
+            alive: alive,
+            blocks: blocks,
+            blocks_view: blocks_view,
+            color: color,
+            context: context.into(),
+            description: description.into(),
+            fighter: fighter,
+            inventory: inventory,
+            function: function,
+            name: name.into(),
+//            object_type: object_type,
+            symbol: symbol,
+        }
+    }
+
+    pub fn create_instance(self, x: i32, y: i32) -> Object {
+        Object {
+            x: x,
+            y: y,
+            ai: self.ai,
+            alive: self.alive,
+            blocks: self.blocks,
+            blocks_view: self.blocks_view,
+            color: self.color,
+            fighter: self.fighter,
+            inventory: self.inventory,
+            function: self.function,
+            name: self.name,
+            symbol: self.symbol,
+        }
+    }
+}
+
+#[derive(Debug, Clone, RustcEncodable, RustcDecodable)]
 pub struct Object {
     pub x: i32,
     pub y: i32,
@@ -33,7 +133,7 @@ pub struct Object {
     pub alive: bool,
     pub fighter: Option<actor::Fighter>,
     pub ai: Option<Ai>,
-    pub item: Option<item::Item>,
+    pub function: Option<item::Function>,
     pub inventory: Option<Box<Vec<Object>>>,
 }
 
@@ -52,7 +152,7 @@ impl Object {
             alive: false,
             fighter: None,
             ai: None,
-            item: None,
+            function: None,
             inventory: None,
         }
     }

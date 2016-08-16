@@ -16,7 +16,7 @@ pub enum UseResult {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, RustcEncodable, RustcDecodable)]
-pub enum Item {
+pub enum Function {
     Confuse,
     Fireball,
     Heal,

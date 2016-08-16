@@ -5,7 +5,7 @@ use game::Game;
 use log;
 use log::MessageLog;
 use object::{self, Object};
-use object::item::{self, Item};
+use object::item::{self, Function};
 use map::{self, Map};
 use ui::Ui;
 use utils;
@@ -116,14 +116,14 @@ pub fn pick_item_up(object_id: usize, game: &mut Game,
 
 pub fn use_item(game_ui: &mut Ui, game: &mut Game, inventory_id: usize,
             actors: &mut [Object]) {
-    if let Some(item) = game.inventory[inventory_id].item {
+    if let Some(item) = game.inventory[inventory_id].function {
         let on_use:
         fn(&mut Ui, &mut Game, &mut [Object])
            -> item::UseResult = match item {
-            Item::Confuse => item::cast_confuse,
-            Item::Fireball => item::cast_fireball,
-            Item::Heal => item::heal_player,
-            Item::Lightning => item::cast_lightning,
+            Function::Confuse => item::cast_confuse,
+            Function::Fireball => item::cast_fireball,
+            Function::Heal => item::heal_player,
+            Function::Lightning => item::cast_lightning,
         };
         match on_use(game_ui, game, actors) {
             item::UseResult::UsedUp => {

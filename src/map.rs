@@ -7,7 +7,7 @@ use tcod::bsp::{Bsp, TraverseOrder};
 
 use consts;
 use object::{self, actor, Object};
-use object::item::Item;
+use object::item::Function;
 use ai::Ai;
 
 pub const MAP_WIDTH: i32 = 80;
@@ -168,6 +168,11 @@ fn create_room(room: &mut Bsp, floor: &mut Map) {
 
 fn place_actors(actors: &mut Vec<Object>, floor: usize,
                  rooms: Vec<Rect>, map: &mut Map) {
+    let mut actor_types = object::load::load_objects(
+        "data/objects/actors.json", object::ObjectType::Actor).unwrap();
+    let mut item_types = object::load::load_objects(
+        "data/objects/items.json", object::ObjectType::Item).unwrap();
+
     if floor == 1 {
         let mut stairs = (0, 0);
         for room in &rooms {
@@ -195,10 +200,8 @@ fn place_actors(actors: &mut Vec<Object>, floor: usize,
         let brick_x = room.x1 + 1;
         let brick_y = room.y1 + 2;
 
-        let brick = Object::new(brick_x, brick_y, 'b', "brick",
-                                colors::RED,
-                                object::Blocks::No,
-                                object::Blocks::No);
+        let mut brick = item_types.get_object("ItemEnvironmentalWeapon");
+        brick.set_pos(brick_x, brick_y);
         map[brick_x as usize][brick_y as usize].items.push(brick);
         println!("Brick! {}, {}", brick_x, brick_y);
     }
