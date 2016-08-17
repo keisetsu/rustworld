@@ -4,9 +4,9 @@ use consts;
 use game::Game;
 use log;
 use log::MessageLog;
-use object::Object;
-use object::item::{self, Item};
-use map::{Map, is_blocked};
+use object::{self, Object};
+use object::item::{self, Function};
+use map::{self, Map};
 use ui::Ui;
 use utils;
 
@@ -36,42 +36,42 @@ pub struct Fighter {
     pub on_death: DeathCallback,
 }
 
-pub fn move_by(id: usize, dx: i32, dy: i32, map: &Map, objects: &mut[Object]) {
-    let (x, y) = objects[id].pos();
-    if !is_blocked(x + dx, y + dy, map, objects) {
-        objects[id].set_pos(x + dx, y + dy);
+pub fn move_by(id: usize, dx: i32, dy: i32, map: &Map, actors: &mut[Object]) {
+    let (x, y) = actors[id].pos();
+    if map::is_blocked(x + dx, y + dy, map, actors) == object::Blocks::No {
+        actors[id].set_pos(x + dx, y + dy);
     }
 }
 
 pub fn move_towards(id: usize, target_x: i32, target_y: i32, map: &Map,
-                objects: &mut [Object]) {
-    let dx = target_x - objects[id].x;
-    let dy = target_y - objects[id].y;
+                actors: &mut [Object]) {
+    let dx = target_x - actors[id].x;
+    let dy = target_y - actors[id].y;
     let distance = ((dx.pow(2) + dy.pow(2)) as f32).sqrt();
 
     let dx = (dx as f32 / distance).round() as i32;
     let dy = (dy as f32 / distance).round() as i32;
 
-    move_by(id, dx, dy, map, objects);
+    move_by(id, dx, dy, map, actors);
 }
 
 pub fn player_move_or_attack(dx: i32, dy: i32, game: &mut Game,
-                         objects: &mut [Object]) {
-    let x = objects[consts::PLAYER].x + dx;
-    let y = objects[consts::PLAYER].y + dy;
+                         actors: &mut [Object]) {
+    let x = actors[consts::PLAYER].x + dx;
+    let y = actors[consts::PLAYER].y + dy;
 
-    let target_id = objects.iter().position(|object| {
+    let target_id = actors.iter().position(|object| {
         object.fighter.is_some() && object.pos() == (x, y)
     });
 
     match target_id {
         Some(target_id) => {
             let (player, target) =
-                utils::mut_two(consts::PLAYER, target_id, objects);
+                utils::mut_two(consts::PLAYER, target_id, actors);
             player.attack(target, &mut game.log);
         }
         None => {
-            move_by(consts::PLAYER, dx, dy, &mut game.map, objects);
+            move_by(consts::PLAYER, dx, dy, &mut game.map, actors);
         }
     }
 }
@@ -86,45 +86,46 @@ fn monster_death(monster: &mut Object, log: &mut log::Messages) {
     log.status_change(format!("{} is dead!", monster.name));
     monster.symbol = '%';
     monster.color = colors::DARK_RED;
-    monster.blocks = false;
+    monster.blocks = object::Blocks::No;
+    monster.blocks_view = object::Blocks::No;
     monster.fighter = None;
     monster.ai = None;
     monster.name = format!("remains of {}", monster.name);
 }
 
 pub fn drop_item(inventory_id: usize, game: &mut Game,
-             objects: &mut Vec<Object>) {
+             actors: &mut Vec<Object>) {
     let mut item = game.inventory.remove(inventory_id);
-    item.set_pos(objects[consts::PLAYER].x, objects[consts::PLAYER].y);
+    item.set_pos(actors[consts::PLAYER].x, actors[consts::PLAYER].y);
     game.log.info(format!("You dropped a {}.", item.name));
-    objects.push(item);
+    actors.push(item);
 }
 
 pub fn pick_item_up(object_id: usize, game: &mut Game,
-                objects: &mut Vec<Object>) {
+                actors: &mut Vec<Object>) {
     if game.inventory.len() as i32 >= consts::MAX_INVENTORY_ITEMS {
         game.log.alert(
                 format!("Your inventory is full, cannot pickup {}.",
-                        objects[object_id].name));
+                        actors[object_id].name));
     } else {
-        let item = objects.swap_remove(object_id);
+        let item = actors.swap_remove(object_id);
         game.log.success( format!("You picked up a {}!", item.name));
         game.inventory.push(item);
     }
 }
 
 pub fn use_item(game_ui: &mut Ui, game: &mut Game, inventory_id: usize,
-            objects: &mut [Object]) {
-    if let Some(item) = game.inventory[inventory_id].item {
+            actors: &mut [Object]) {
+    if let Some(item) = game.inventory[inventory_id].function {
         let on_use:
         fn(&mut Ui, &mut Game, &mut [Object])
            -> item::UseResult = match item {
-            Item::Confuse => item::cast_confuse,
-            Item::Fireball => item::cast_fireball,
-            Item::Heal => item::heal_player,
-            Item::Lightning => item::cast_lightning,
+            Function::Confuse => item::cast_confuse,
+            Function::Fireball => item::cast_fireball,
+            Function::Heal => item::heal_player,
+            Function::Lightning => item::cast_lightning,
         };
-        match on_use(game_ui, game, objects) {
+        match on_use(game_ui, game, actors) {
             item::UseResult::UsedUp => {
                 game.inventory.remove(inventory_id);
             }

@@ -10,7 +10,7 @@ use tcod::console::{
     TextAlignment,
 };
 use tcod::input::Mouse;
-use tcod::map::Map as FovMap;
+use tcod::map::{Map as FovMap, FovAlgorithm};
 use tcod::colors::{self, Color};
 
 use std::ascii::AsciiExt;
@@ -20,7 +20,7 @@ use game;
 use game::Game;
 use log::MessageType;
 use map::{self, Map};
-use object::Object;
+use object::{self, Object};
 
 pub struct Ui {
     pub root: Root,
@@ -34,6 +34,16 @@ const COLOR_ALERT: Color = colors::RED;
 const COLOR_INFO: Color = colors::LIGHTER_GREY;
 const COLOR_SUCCESS: Color = colors::GREEN;
 const COLOR_STATUS_CHANGE: Color = colors::WHITE;
+
+const COLOR_DARK_WALL: Color = colors::BLACK;
+const COLOR_LIGHT_WALL: Color = colors::DARKEST_GREY;
+const COLOR_DARK_GROUND: Color = colors::DARKER_GREY;
+const COLOR_LIGHT_GROUND: Color = colors::GREY;
+
+const FOV_ALGO: FovAlgorithm = FovAlgorithm::Shadow;
+const FOV_LIGHT_WALLS: bool = true;
+const TORCH_RADIUS: i32 = 3;
+
 
 pub fn initialize(title: &str) -> Ui {
     let root = Root::initializer()
@@ -51,18 +61,21 @@ pub fn initialize(title: &str) -> Ui {
         con: Offscreen::new(map::MAP_WIDTH, map::MAP_HEIGHT),
         panel: Offscreen::new(consts::SCREEN_WIDTH, consts::PANEL_HEIGHT),
         // fov: FovMap::new(map::MAP_WIDTH, map::MAP_HEIGHT),
-        fov: FovMap::new(20, 20),
+        fov: FovMap::new(map::FLOOR_WIDTH, map::FLOOR_HEIGHT),
         mouse: Default::default(),
     }
 
 }
 
-pub fn initialize_fov(map: &Map, game_ui: &mut Ui) {
+pub fn initialize_fov(map: &Map, actors: &[Object], game_ui: &mut Ui) {
     for y in 0..map::FLOOR_HEIGHT {
         for x in 0..map::FLOOR_WIDTH {
             game_ui.fov.set(x, y,
-                         !map[x as usize][y as usize].blocks_sight,
-                         !map[x as usize][y as usize].impassable);
+                         map::blocks_view(x, y, map, actors) !=
+                            object::Blocks::Full,
+                            map::is_blocked(x, y,  map, actors) !=
+                            object::Blocks::Full
+            );
         }
     }
     game_ui.con.clear();
@@ -102,40 +115,48 @@ fn get_message_color(message_type: &MessageType) -> Color {
 }
 
 
-pub fn render_all(game_ui: &mut Ui, game: &mut Game, objects: &[Object],
+pub fn render_all(game_ui: &mut Ui, game: &mut Game, actors: &[Object],
               fov_recompute: bool) {
     if fov_recompute {
-        let player = &objects[consts::PLAYER];
-        game_ui.fov.compute_fov(player.x, player.y, consts::TORCH_RADIUS,
-                             consts::FOV_LIGHT_WALLS, consts::FOV_ALGO);
+        let player = &actors[consts::PLAYER];
+        game_ui.fov.compute_fov(player.x, player.y, TORCH_RADIUS,
+                             FOV_LIGHT_WALLS, FOV_ALGO);
 
-        for y in 0..map::FLOOR_HEIGHT {
-            for x in 0..map::FLOOR_WIDTH {
+        for x in 0..map::FLOOR_WIDTH {
+            for y in 0..map::FLOOR_HEIGHT {
+                let wall = map::blocks_view(x, y, & game.map, actors);
+                let game_tile = &mut game.map[x as usize][y as usize];
                 let visible = game_ui.fov.is_in_fov(x, y);
                 // let visible = true;
-                let wall = game.map[x as usize][y as usize].blocks_sight;
-                let color = match(visible, wall) {
-                    (false, true) => consts::COLOR_DARK_WALL,
-                    (false, false) => consts::COLOR_DARK_GROUND,
-                    (true, true) => consts::COLOR_LIGHT_WALL,
-                    (true, false) => consts::COLOR_LIGHT_GROUND,
-                };
 
+                // let wall = game.map[x as usize][y as usize].blocks_view();
+                let color = match(visible, wall) {
+                    (false, object::Blocks::Full) => COLOR_DARK_WALL,
+                    (false, object::Blocks::No) => COLOR_DARK_GROUND,
+                    (true, object::Blocks::Full) => COLOR_LIGHT_WALL,
+                    (true, object::Blocks::No) => COLOR_LIGHT_GROUND,
+                    (_, _) => COLOR_LIGHT_GROUND,
+                };
                 let explored =
-                    &mut game.map[x as usize][y as usize].explored;
+                    &mut game_tile.explored;
                 if visible {
+                    for item in &game_tile.items {
+                        item.draw(&mut game_ui.con);
+                    }
+
                     *explored = true;
                 }
 
                 if *explored {
                     game_ui.con.set_char_background(x, y, color,
-                                            BackgroundFlag::Set);
+                                                    BackgroundFlag::Set);
                 }
             }
         }
     }
 
-    let mut to_draw: Vec<_> = objects.iter()
+
+    let mut to_draw: Vec<_> = actors.iter()
         .filter(|o| game_ui.fov.is_in_fov(o.x, o.y)).collect();
 
     to_draw.sort_by(|o1, o2| { o1.blocks.cmp(&o2.blocks) });
@@ -163,14 +184,14 @@ pub fn render_all(game_ui: &mut Ui, game: &mut Game, objects: &[Object],
     }
 
     // show the player's stats
-    let hp = objects[consts::PLAYER].fighter.map_or(0, |f| f.hp);
-    let max_hp = objects[consts::PLAYER].fighter.map_or(0, |f| f.max_hp);
+    let hp = actors[consts::PLAYER].fighter.map_or(0, |f| f.hp);
+    let max_hp = actors[consts::PLAYER].fighter.map_or(0, |f| f.max_hp);
     render_bar(&mut game_ui.panel, 1, 1, consts::BAR_WIDTH, "HP", hp, max_hp,
                colors::LIGHT_RED, colors::DARKER_RED);
 
     game_ui.panel.set_default_foreground(colors::LIGHT_GREY);
     game_ui.panel.print_ex(1, 0, BackgroundFlag::None, TextAlignment::Left,
-                   get_names_under_mouse(game_ui.mouse, objects, &game_ui.fov));
+                   get_names_under_mouse(game_ui.mouse, actors, &game_ui.fov));
     // blit the contents of `panel` to the root console
     blit(&mut game_ui.panel, (0, 0), (consts::SCREEN_WIDTH, consts::PANEL_HEIGHT),
          &mut game_ui.root, (0, consts::PANEL_Y), 1.0, 1.0);
@@ -245,11 +266,11 @@ pub fn inventory_menu(inventory: &[Object], header: &str, root: &mut Root)
     }
 }
 
-fn get_names_under_mouse(mouse: Mouse, objects: &[Object], fov_map: &FovMap)
+fn get_names_under_mouse(mouse: Mouse, actors: &[Object], fov_map: &FovMap)
     -> String {
     let (x, y) = (mouse.cx as i32, mouse.cy as i32);
 
-    let names = objects.iter().filter(
+    let names = actors.iter().filter(
         |obj| {obj.pos() == (x, y) && fov_map.is_in_fov(obj.x, obj.y)})
         .map(|obj| obj.name.clone())
         .collect::<Vec<_>>();
@@ -281,14 +302,14 @@ pub fn main_menu(game_ui: &mut Ui) {
 
         match choice {
             Some(0) => {
-                let (mut objects, mut game) = game::new_game(game_ui);
-                game::play_game(&mut objects, &mut game, game_ui);
+                let (mut actors, mut game) = game::new_game(game_ui);
+                game::play_game(&mut actors, &mut game, game_ui);
             }
             Some(1) => {
                 match game::load_game() {
-                    Ok((mut objects, mut game)) => {
-                        initialize_fov(&game.map, game_ui);
-                        game::play_game(&mut objects, &mut game, game_ui);
+                    Ok((mut actors, mut game)) => {
+                        initialize_fov(&game.map, &actors, game_ui);
+                        game::play_game(&mut actors, &mut game, game_ui);
                     }
                     Err(_e) => {
                         msgbox("\nSaved game failed to load.\n",

@@ -1,6 +1,6 @@
-extern crate rustc_serialize;
+use std::fmt::{self, Debug, Display};
 
-extern crate tcod;
+use rustc_serialize;
 
 use tcod::colors::Color;
 use tcod::console::{
@@ -10,38 +10,129 @@ use tcod::console::{
 
 pub mod actor;
 pub mod item;
+pub mod load;
 
 use ai::Ai;
 use log::{self, MessageLog};
 
-#[derive(Debug, RustcEncodable, RustcDecodable)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Ord, Eq,
+         RustcEncodable, RustcDecodable)]
+pub enum Blocks {
+    No,
+    Half,
+    Full
+}
+
+#[derive(Debug)]
+pub enum ObjectCategory{
+    Actor,
+    Item
+}
+
+// #[derive(Debug, PartialEq, Eq, Hash)]
+// pub enum ObjectType {
+//     ActorZombie,
+//     ItemAmmo,
+//     ItemDrink,
+//     ItemEnvironmental,
+//     ItemEnvironmentalWeapon,
+//     ItemFood,
+//     ItemHealth,
+//     ItemMeleeWeapon,
+//     ItemRangedWeapon,
+// }
+
+// impl fmt::Display for ObjectType {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         fmt::Debug::fmt(self, f)
+//     }
+// }
+
+const ACTOR_TYPES: &'static [ &'static str ] = &[ "zombie" ];
+
+const ITEM_TYPES: &'static [ &'static str ] = &[
+    "ammo",
+    "drink",
+    "environmental",
+    "environmental weapon",
+    "food",
+    "health",
+    "melee weapon",
+    "ranged weapon",
+    "stairs",
+];
+
+#[derive(Debug, Clone)]
+pub struct ObjectClass {
+    pub ai: Option<Ai>,
+    pub alive: bool,
+    pub blocks: Blocks,
+    pub blocks_view: Blocks,
+    pub chance: u32,
+    pub color: Color,
+    pub context: String,
+    pub description: String,
+    pub fighter: Option<actor::Fighter>,
+    pub function: Option<item::Function>,
+    pub inventory: Option<Box<Vec<Object>>>,
+    pub name: String,
+    pub object_type: String,
+    pub symbol: char,
+}
+
+#[derive(Debug, Clone, RustcEncodable, RustcDecodable)]
 pub struct Object {
+    pub ai: Option<Ai>,
+    pub alive: bool,
+    pub blocks: Blocks,
+    pub blocks_view: Blocks,
+    pub color: Color,
+    pub fighter: Option<actor::Fighter>,
+    pub function: Option<item::Function>,
+    pub inventory: Option<Box<Vec<Object>>>,
+    pub name: String,
+    pub object_type: String,
+    pub symbol: char,
     pub x: i32,
     pub y: i32,
-    pub symbol: char,
-    pub color: Color,
-    pub name: String,
-    pub blocks: bool,
-    pub alive: bool,
-    pub fighter: Option<actor::Fighter>,
-    pub ai: Option<Ai>,
-    pub item: Option<item::Item>,
 }
 
 impl Object {
     pub fn new(x: i32, y: i32, symbol: char, name: &str,
-               color: Color, blocks: bool) -> Self {
+               color: Color, blocks: Blocks,
+               blocks_view: Blocks) -> Self {
         Object {
+            ai: None,
+            alive: false,
+            blocks: blocks,
+            blocks_view: blocks_view,
+            color: color,
+            fighter: None,
+            function: None,
+            inventory: None,
+            name: name.into(),
+            object_type: "".into(),
+            symbol: symbol,
             x: x,
             y: y,
-            symbol: symbol,
-            color: color,
-            name: name.into(),
-            blocks: blocks,
-            alive: false,
-            fighter: None,
-            ai: None,
-            item: None,
+        }
+    }
+
+    pub fn from_class(object_class: &ObjectClass) -> Self {
+        Object{
+            ai: object_class.ai.clone(),
+            alive: object_class.alive,
+            blocks: object_class.blocks,
+            blocks_view: object_class.blocks_view,
+            color: object_class.color,
+            fighter: object_class.fighter,
+            function: object_class.function,
+            inventory: object_class.inventory.clone(),
+            name: object_class.name.to_string(),
+            object_type: object_class.object_type.to_string(),
+            symbol: object_class.symbol,
+            x: 0,
+            y: 0,
         }
     }
 
