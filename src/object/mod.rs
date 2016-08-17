@@ -23,7 +23,8 @@ pub enum Blocks {
     Full
 }
 
-pub enum ObjectType{
+#[derive(Debug)]
+pub enum ObjectCategory{
     Actor,
     Item
 }
@@ -47,94 +48,53 @@ pub enum ObjectType{
 //     }
 // }
 
-const ACTOR_TYPES: &'static [ &'static str ] = &[ "ActorZombie" ];
+const ACTOR_TYPES: &'static [ &'static str ] = &[ "zombie" ];
 
 const ITEM_TYPES: &'static [ &'static str ] = &[
-    "ItemAmmo",
-    "ItemDrink",
-    "ItemEnvironmental",
-    "ItemEnvironmentalWeapon",
-    "ItemFood",
-    "ItemHealth",
-    "ItemMeleeWeapon",
-    "ItemRangedWeapon",
+    "ammo",
+    "drink",
+    "environmental",
+    "environmental weapon",
+    "food",
+    "health",
+    "melee weapon",
+    "ranged weapon",
+    "stairs",
 ];
 
 #[derive(Debug, Clone)]
 pub struct ObjectClass {
-//    pub object_type: String,
-    pub symbol: char,
-    pub name: String,
-    pub description: String,
-    pub context: String,
-    pub color: Color,
+    pub ai: Option<Ai>,
+    pub alive: bool,
     pub blocks: Blocks,
     pub blocks_view: Blocks,
-    pub alive: bool,
+    pub chance: u32,
+    pub color: Color,
+    pub context: String,
+    pub description: String,
     pub fighter: Option<actor::Fighter>,
-    pub ai: Option<Ai>,
     pub function: Option<item::Function>,
     pub inventory: Option<Box<Vec<Object>>>,
-}
-
-impl ObjectClass {
-    pub fn new(symbol: char, name: &str,
-               description: &str, context: &str, color: Color,
-               blocks: Blocks, blocks_view: Blocks, alive: bool,
-               fighter: Option<actor::Fighter>,
-               ai: Option<Ai>,
-               function: Option<item::Function>,
-               inventory: Option<Box<Vec<Object>>>)
-               -> Self {
-        ObjectClass {
-            ai: ai,
-            alive: alive,
-            blocks: blocks,
-            blocks_view: blocks_view,
-            color: color,
-            context: context.into(),
-            description: description.into(),
-            fighter: fighter,
-            inventory: inventory,
-            function: function,
-            name: name.into(),
-//            object_type: object_type,
-            symbol: symbol,
-        }
-    }
-
-    pub fn create_instance(self, x: i32, y: i32) -> Object {
-        Object {
-            x: x,
-            y: y,
-            ai: self.ai,
-            alive: self.alive,
-            blocks: self.blocks,
-            blocks_view: self.blocks_view,
-            color: self.color,
-            fighter: self.fighter,
-            inventory: self.inventory,
-            function: self.function,
-            name: self.name,
-            symbol: self.symbol,
-        }
-    }
+    pub name: String,
+    pub object_type: String,
+    pub symbol: char,
 }
 
 #[derive(Debug, Clone, RustcEncodable, RustcDecodable)]
 pub struct Object {
-    pub x: i32,
-    pub y: i32,
-    pub symbol: char,
-    pub color: Color,
-    pub name: String,
+    pub ai: Option<Ai>,
+    pub alive: bool,
     pub blocks: Blocks,
     pub blocks_view: Blocks,
-    pub alive: bool,
+    pub color: Color,
     pub fighter: Option<actor::Fighter>,
-    pub ai: Option<Ai>,
     pub function: Option<item::Function>,
     pub inventory: Option<Box<Vec<Object>>>,
+    pub name: String,
+    pub object_type: String,
+    pub symbol: char,
+    pub x: i32,
+    pub y: i32,
 }
 
 impl Object {
@@ -142,18 +102,37 @@ impl Object {
                color: Color, blocks: Blocks,
                blocks_view: Blocks) -> Self {
         Object {
-            x: x,
-            y: y,
-            symbol: symbol,
-            color: color,
-            name: name.into(),
+            ai: None,
+            alive: false,
             blocks: blocks,
             blocks_view: blocks_view,
-            alive: false,
+            color: color,
             fighter: None,
-            ai: None,
             function: None,
             inventory: None,
+            name: name.into(),
+            object_type: "".into(),
+            symbol: symbol,
+            x: x,
+            y: y,
+        }
+    }
+
+    pub fn from_class(object_class: &ObjectClass) -> Self {
+        Object{
+            ai: object_class.ai.clone(),
+            alive: object_class.alive,
+            blocks: object_class.blocks,
+            blocks_view: object_class.blocks_view,
+            color: object_class.color,
+            fighter: object_class.fighter,
+            function: object_class.function,
+            inventory: object_class.inventory.clone(),
+            name: object_class.name.to_string(),
+            object_type: object_class.object_type.to_string(),
+            symbol: object_class.symbol,
+            x: 0,
+            y: 0,
         }
     }
 

@@ -22,7 +22,7 @@ struct JsonObjectClass {
     symbol: char,
     color: (u8, u8, u8),
     alive: bool,
-    base_chance: u32,
+    chance: u32,
     context: String,
     fighter: Option<String>,
     ai: Option<String>,
@@ -31,94 +31,94 @@ struct JsonObjectClass {
     object_type: String,
 }
 
-#[derive(Debug, RustcDecodable)]
-struct JsonObjectType {
-    type_name: String,
-    classes: Vec<JsonObjectClass>
-}
-
+#[derive(Debug)]
 pub struct ObjectTypes {
-    types: HashMap<String, Vec<Weighted<object::ObjectClass>>>
+    object_category: object::ObjectCategory,
+    by_type: HashMap<String, Vec<object::ObjectClass>>,
+    by_name: HashMap<String, object::ObjectClass>,
 }
 
 impl ObjectTypes {
-
-    pub fn new(object_type: object::ObjectType) -> Self {
-        let mut types = HashMap::new();
-        let type_groups = match object_type {
-            object::ObjectType::Actor => object::ACTOR_TYPES,
-            object::ObjectType::Item => object::ITEM_TYPES
+    pub fn new(object_category: object::ObjectCategory) -> Self {
+        let mut by_name = HashMap::new();
+        let mut by_type = HashMap::new();
+        let types = match object_category {
+            object::ObjectCategory::Actor => object::ACTOR_TYPES,
+            object::ObjectCategory::Item => object::ITEM_TYPES
         };
-        for type_ in type_groups {
-            let weighted_objects: Vec<Weighted<object::ObjectClass>> = vec![];
-            types.insert(type_.to_string(), weighted_objects);
+
+        for type_ in types {
+            by_type.insert(type_.to_string(), vec![]);
         }
+
         ObjectTypes{
-            types: types
+            object_category: object_category,
+            by_type: by_type,
+            by_name: by_name,
         }
     }
-    pub fn add_class(&mut self, base_chance: u32, type_name: &str,
+    pub fn add_class(&mut self, object_type: String,
                      object_class: object::ObjectClass) {
-        let weighted_object = Weighted {weight: base_chance,
-                                         item: object_class};
-        self.types.get_mut(type_name).unwrap().push(weighted_object);
+        println!("{:?}", object_class);
+        self.by_name.insert(object_class.name.to_string(), object_class.clone());
+        self.by_type.get_mut(&object_type).unwrap().push(object_class.clone());
     }
 
-    pub fn get_object(&mut self, type_name: &str) -> object::Object {
-        // This is a big mess that I just landed on after hours of kicking and
-        // screaming. I don't understand why WeightedChoice needs a mutable
-        // reference to the array of Weighted objects, but there it is.
+    pub fn get(&self, object_name: &str) -> object::Object {
+        let object_class = self.by_name.get(object_name).unwrap();
+        object::Object::from_class(object_class)
+    }
 
-        let mut object_classes: &mut Vec<Weighted<object::ObjectClass>> =
-            self.types.get_mut(type_name).unwrap();
-        let wc = WeightedChoice::new(object_classes);
-        let mut rng = rand::thread_rng();
-        let object_class = wc.ind_sample(&mut rng);
-        object::Object{
-            x: 0,
-            y: 0,
-            symbol: object_class.symbol,
-            color: object_class.color,
-            name: object_class.name.into(),
-            blocks: object_class.blocks,
-            blocks_view: object_class.blocks_view,
-            alive: object_class.alive,
-            fighter: object_class.fighter,
-            ai: object_class.ai,
-            function: object_class.function,
-            inventory: object_class.inventory,
+    pub fn get_random(&mut self, type_name: &str) -> Option<object::Object> {
+        if let Some(classes) = self.by_type.get(type_name) {
+            let mut weighted = vec![];
+            for class in classes {
+                weighted.push(Weighted{weight: class.chance,
+                                       item: class});
+            }
+            let wc = WeightedChoice::new(&mut weighted);
+            let mut rng = rand::thread_rng();
+            let object_class = wc.ind_sample(&mut rng);
+            return Some(object::Object::from_class(object_class));
         }
+        None
     }
 }
 
-pub fn load_objects(filename: &str, object_type: object::ObjectType) ->
+pub fn load_objects(filename: &str, object_category: object::ObjectCategory) ->
     Result<ObjectTypes, Box<Error>>
 {
 
     let mut json = String::new();
     let mut file = File::open(filename).unwrap();
     file.read_to_string(&mut json).unwrap();
-    let types: Vec<JsonObjectType> = json::decode(&json).unwrap();
-    let mut return_val = ObjectTypes::new(object_type);
-    for type_list in types {
-        let type_name = &type_list.type_name;
-        for item in type_list.classes {
-            let (r, g, b) = item.color;
-            let color = Color::new(r, g, b);
-            let blocks = get_blocks(&item.blocks);
-            let blocks_view = get_blocks(&item.blocks_view);
-            let ai = get_ai(item.ai);
-            let function = get_function(item.function);
-            let fighter = get_fighter(item.fighter);
-            let new_item = object::ObjectClass::new(item.symbol, &item.name,
-                                                    &item.description,
-                                                    &item.context, color,
-                                                    blocks, blocks_view,
-                                                    item.alive, fighter, ai,
-                                                    function, None
-            );
-            return_val.add_class(item.base_chance, &type_name, new_item);
-        }
+    let classes: Vec<JsonObjectClass> = json::decode(&json).unwrap();
+    let mut return_val = ObjectTypes::new(object_category);
+    for class in classes {
+        let (r, g, b) = class.color;
+        let color = Color::new(r, g, b);
+        let blocks = get_blocks(&class.blocks);
+        let blocks_view = get_blocks(&class.blocks_view);
+        let ai = get_ai(class.ai);
+        let function = get_function(class.function);
+        let fighter = get_fighter(class.fighter);
+        let new_class = object::ObjectClass{
+            ai: ai,
+            alive: class.alive,
+            chance: class.chance,
+            blocks: blocks,
+            blocks_view: blocks_view,
+            color: color,
+            context: class.context,
+            description: class.description,
+            fighter: fighter,
+            function: function,
+            inventory: None,
+            name: class.name,
+            object_type: class.object_type.clone(),
+            symbol: class.symbol,
+        };
+        return_val.add_class(class.object_type, new_class);
     }
     Ok(return_val)
 }

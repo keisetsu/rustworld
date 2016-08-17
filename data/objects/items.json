@@ -1,7 +1,4 @@
 [{
-    "type_name": "ItemEnvironmentalWeapon",
-    "classes":
-    [{
         "name": "brick",
         "description": "An ordinary reddish brown brick",
         "blocks": "no",
@@ -9,12 +6,38 @@
         "symbol": "b",
         "color": [255, 0, 0],
         "alive": false,
-        "base_chance": 10,
+        "chance": 10,
         "context": "any",
         "ai": null,
         "item": null,
         "inventory": null,
-        "object_type": "environmental_weapon"
-    }]
-}
-]
+        "object_type": "environmental weapon"
+},{
+        "name": "glass bottle",
+        "description": "A glass bottle, once used to hold drinks",
+        "blocks": "no",
+        "blocks_view": "no",
+        "symbol": "b",
+        "color": [255, 0, 127],
+        "alive": false,
+        "chance": 20,
+        "context": "any",
+        "ai": null,
+        "item": null,
+        "inventory": null,
+        "object_type": "environmental weapon"
+},{
+        "name": "stairs up",
+        "description": "Metal stairs leading up",
+        "blocks": "no",
+        "blocks_view": "half",
+        "symbol": ">",
+        "color": [64, 64, 64],
+        "alive": false,
+        "chance": 20,
+        "context": "any",
+        "ai": null,
+        "item": null,
+        "inventory": null,
+        "object_type": "stairs"
+}]
