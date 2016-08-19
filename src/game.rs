@@ -64,7 +64,7 @@ pub fn new_game(game_ui: &mut ui::Ui) -> (Vec<Object>, Game) {
     let mut actors = vec![player];
     let mut game = Game {
         // map: map::make_map(&mut actors),
-        map: map::make_floor(&mut actors),
+        map: map::make_map(&mut actors),
         log: vec![],
         inventory: vec![],
     };
@@ -121,6 +121,6 @@ pub fn play_game(actors: &mut Vec<Object>, game: &mut Game, game_ui: &mut ui::Ui
 }
 
 pub fn next_level(game_ui: &mut ui::Ui, actors: &mut Vec<Object>, game: &mut Game) {
-    game.map = map::make_floor(actors);
+    game.map = map::make_map(actors);
     ui::initialize_fov(&game.map, &actors, game_ui);
 }

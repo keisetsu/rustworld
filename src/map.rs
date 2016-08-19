@@ -6,7 +6,8 @@ use tcod::colors;
 use tcod::bsp::{Bsp, TraverseOrder};
 
 use consts;
-use object::{self, actor, Object};
+use object::{self, actor, Object, ObjectClass};
+use object::load::ObjectRandomizer;
 use object::item::Function;
 use ai::Ai;
 
@@ -26,18 +27,15 @@ pub const MAX_ROOM_ITEMS:i32 = 4;
 
 #[derive(Debug, RustcEncodable, RustcDecodable)]
 pub struct Tile {
-    pub floor: Option<Object>,
+    pub floor: Object,
     pub explored: bool,
     pub items: Vec<Object>,
 }
 
 impl Tile {
-    pub fn new(x: i32, y: i32) -> Self {
-        let concrete = Object::new(x, y, ' ', "concrete floor",
-                                   colors::GREY, object::Blocks::No,
-                                   object::Blocks::No);
+    pub fn new(x: i32, y: i32, floor: &ObjectClass) -> Self {
         Tile{
-            floor: Some(concrete),
+            floor: floor.create_object(),
             explored: false,
             items: vec![],}
     }
@@ -126,26 +124,26 @@ impl Rect {
     }
 }
 
-fn create_room(room: &mut Bsp, floor: &mut Map) {
+fn create_room(room: &mut Bsp, floor_class: &ObjectClass, map: &mut Map) {
     for x in (room.x)..room.x + room.w {
         for y in (room.y)..room.y + room.h {
-            floor[x as usize][y as usize] = Tile::new(x, y);
+            map[x as usize][y as usize] = Tile::new(x, y,
+                                                    floor_class);
         }
     }
 }
 
 fn place_objects(actors: &mut Vec<Object>, floor: usize,
-                 rooms: Vec<Rect>, map: &mut Map) {
-    let mut actor_types = object::load::load_objects(
-        "data/objects/actors.json", object::ObjectCategory::Actor).unwrap();
-    let mut item_types = object::load::load_objects(
-        "data/objects/items.json", object::ObjectCategory::Item).unwrap();
+                 rooms: Vec<Rect>, map: &mut Map,
+                 items: &object::load::ObjectTypes) {
 
     if floor == 1 {
         let mut stairs = (0, 0);
         for room in &rooms {
+            let ref mut door_randomizer = items.create_randomizer("door").unwrap();
             if room.x1 == 1 && room.y1 == 1 {
-                make_door(0, room.y2/ 2, map);
+                make_door(0, room.y2 / 2,
+                          door_randomizer, map);
                 actors[consts::PLAYER].set_pos(1, room.y2 / 2);
             } else if room.y2 == FLOOR_HEIGHT - 1 || room.x2 == FLOOR_WIDTH - 1 {
                 if stairs == (0, 0) || rand::random() {
@@ -156,7 +154,7 @@ fn place_objects(actors: &mut Vec<Object>, floor: usize,
             }
         }
         let (stairs_x, stairs_y) = stairs;
-        let mut stairs_up = item_types.get("stairs up");
+        let mut stairs_up = items.get_class("stairs up").create_object();
         stairs_up.set_pos(stairs_x, stairs_y);
         map[stairs_x as usize][stairs_y as usize].items.push(stairs_up);
     }
@@ -165,23 +163,28 @@ fn place_objects(actors: &mut Vec<Object>, floor: usize,
         let room = rooms[rand::thread_rng().gen_range(0, rooms.len() - 1)];
         let brick_x = room.x1 + 1;
         let brick_y = room.y1 + 2;
-        if let Some(mut brick) = item_types.get_random(
+        if let Some(ref mut brick_random) = items.create_randomizer(
             "environmental weapon") {
+            let brick_class = &mut brick_random.get_class();
+            let mut brick = brick_class.create_object();
             brick.set_pos(brick_x, brick_y);
             map[brick_x as usize][brick_y as usize].items.push(brick);
         };
     }
 
 }
-fn make_door(x: i32, y: i32, map: &mut Map) {
-    let door = Object::new(x, y, '+', "hardwood door",
-                                  colors::SEPIA,
-                                  object::Blocks::No,
-                                  object::Blocks::Full);
-        map[x as usize][y as usize].items[0] = door;
+fn make_door(x: i32, y: i32, door_randomizer: &mut ObjectRandomizer,
+             map: &mut Map) {
+    let door_class = door_randomizer.get_class();
+    let mut door = door_class.create_object();
+    door.set_pos(x, y);
+    map[x as usize][y as usize].items[0] = door;
 }
 
-fn traverse_node(node: &mut Bsp, mut rooms: &mut Vec<Rect>, mut floor: &mut Map) -> bool {
+fn traverse_node(node: &mut Bsp, rooms: &mut Vec<Rect>,
+                 object_types: &object::load::ObjectTypes,
+                 floor_type: &ObjectClass,
+                 mut map: &mut Map) -> bool {
     if node.is_leaf() {
         let mut minx = node.x + 1;
         let mut maxx = node.x + node.w - 1;
@@ -197,7 +200,7 @@ fn traverse_node(node: &mut Bsp, mut rooms: &mut Vec<Rect>, mut floor: &mut Map)
         node.y = miny;
         node.w = maxx - minx + 1;
         node.h = maxy - miny + 1;
-        create_room(node, floor);
+        create_room(node, floor_type, map);
         rooms.push(Rect::new(node.x, node.y, node.w, node.h));
     } else {
         if let (Some(left), Some(right)) = (node.left(), node.right()) {
@@ -205,12 +208,16 @@ fn traverse_node(node: &mut Bsp, mut rooms: &mut Vec<Rect>, mut floor: &mut Map)
             node.y = cmp::min(left.y, right.y);
             node.w = cmp::max(left.x + left.w, right.x + right.w) - node.x;
             node.h = cmp::max(left.y + left.h, right.y + right.h) - node.y;
+            println!("({:?}, {:?}), ({:?}, {:?})", node.x, node.y, node.x + node.w,
+                     node.y + node.h);
+            let ref mut door_randomizer = object_types.create_randomizer("door")
+                .unwrap();
             if node.horizontal() {
                 make_door(left.x, cmp::max(left.y, right.y) - 1,
-                          &mut floor);
+                          door_randomizer, &mut map);
             } else {
                 make_door(cmp::max(left.x, right.x) - 1, left.y,
-                          &mut floor);
+                          door_randomizer, &mut map);
             }
         }
     }
@@ -218,26 +225,31 @@ fn traverse_node(node: &mut Bsp, mut rooms: &mut Vec<Rect>, mut floor: &mut Map)
 }
 
 
-pub fn make_floor(mut actors: &mut Vec<Object>) -> Map {
-    let mut floor = vec![];
+pub fn make_map(mut actors: &mut Vec<Object>) -> Map {
+    let mut map = vec![];
+    let mut actor_types = object::load::load_objects(
+        "data/objects/actors.json", object::ObjectCategory::Actor).unwrap();
+    let mut item_types = object::load::load_objects(
+        "data/objects/items.json", object::ObjectCategory::Item).unwrap();
+    let wall_class = item_types.get_class("brick wall");
+    let concrete_floor = item_types.get_class("concrete floor");
     for x in 0..FLOOR_WIDTH {
-        floor.push(vec![]);
+        map.push(vec![]);
         for y in 0..FLOOR_HEIGHT {
-            let mut wall_tile: Tile = Tile::new(x, y);
-            let brick_wall = Object::new(x, y, ' ', "brick wall",
-                                      colors::DARKEST_GREY,
-                                      object::Blocks::Full,
-                                      object::Blocks::Full);
+            let mut wall_tile: Tile = Tile::new(x, y, &concrete_floor);
+            let mut brick_wall = wall_class.create_object();
+            brick_wall.set_pos(x, y);
             wall_tile.items.push(brick_wall);
-            floor[x as usize].push(wall_tile);
+            map[x as usize].push(wall_tile);
         }
     }
     let mut rooms = vec![];
     let mut bsp = Bsp::new_with_size(0, 0, FLOOR_WIDTH, FLOOR_HEIGHT);
     bsp.split_recursive(None, 3, ROOM_MIN_X, ROOM_MIN_Y, 1.25, 1.25);
     bsp.traverse(TraverseOrder::InvertedLevelOrder, |node| {
-        traverse_node(node, &mut rooms, &mut floor)
+        traverse_node(node, &mut rooms, &item_types, &concrete_floor, &mut map)
     });
-    place_objects(&mut actors, 1, rooms, &mut floor);
-    floor
+    println!("{:?}", rooms);
+    place_objects(&mut actors, 1, rooms, &mut map, &item_types);
+    map
 }

@@ -1,5 +1,7 @@
 use std::cmp;
 
+pub mod owned_weighted_choice;
+
 pub fn mut_two<T>(first_index: usize, second_index: usize, items: &mut [T]) ->
     (&mut T, &mut T) {
         assert!(first_index != second_index);

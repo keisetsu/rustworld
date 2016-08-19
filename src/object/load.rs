@@ -6,12 +6,13 @@ use std::error::Error;
 use std::io::Read;
 use std::collections::HashMap;
 use rand;
-use rand::distributions::{Weighted, WeightedChoice, IndependentSample};
+use rand::distributions::{Weighted, IndependentSample};
 
 use ai;
 use object;
 use object::item;
 use object::actor;
+use util::owned_weighted_choice::OwnedWeightedChoice;
 
 #[derive(Debug, RustcDecodable)]
 struct JsonObjectClass {
@@ -64,24 +65,45 @@ impl ObjectTypes {
         self.by_type.get_mut(&object_type).unwrap().push(object_class.clone());
     }
 
-    pub fn get(&self, object_name: &str) -> object::Object {
-        let object_class = self.by_name.get(object_name).unwrap();
-        object::Object::from_class(object_class)
+    // pub fn get_object(&self, class_name: &str) -> object::Object {
+    //     let object_class = self.by_name.get(object_name).unwrap();
+    //     object::Object::from_class(object_class)
+    // }
+
+    pub fn get_class(&self, class_name: &str) -> object::ObjectClass {
+        let some_class = self.by_name.get(class_name).unwrap();
+        some_class.clone()
     }
 
-    pub fn get_random(&mut self, type_name: &str) -> Option<object::Object> {
+    pub fn create_randomizer(&self, type_name: &str) ->
+        Option<ObjectRandomizer> {
         if let Some(classes) = self.by_type.get(type_name) {
-            let mut weighted = vec![];
-            for class in classes {
-                weighted.push(Weighted{weight: class.chance,
-                                       item: class});
-            }
-            let wc = WeightedChoice::new(&mut weighted);
-            let mut rng = rand::thread_rng();
-            let object_class = wc.ind_sample(&mut rng);
-            return Some(object::Object::from_class(object_class));
+            return Some(ObjectRandomizer::new(classes));
         }
         None
+    }
+}
+
+pub struct ObjectRandomizer {
+    weighted_choice: OwnedWeightedChoice<object::ObjectClass>,
+    rng: rand::ThreadRng
+}
+
+impl ObjectRandomizer {
+    fn new(classes: &Vec<object::ObjectClass>) -> Self {
+        let mut weighted = vec![];
+        for class in classes {
+            weighted.push(Weighted{weight: class.chance,
+                                   item: class.clone()});
+        }
+        let mut rng = rand::thread_rng();
+        ObjectRandomizer{
+            weighted_choice: OwnedWeightedChoice::new(weighted),
+            rng: rng,
+        }
+    }
+    pub fn get_class(&mut self) -> object::ObjectClass {
+        self.weighted_choice.ind_sample(&mut self.rng)
     }
 }
 

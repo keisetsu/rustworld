@@ -8,7 +8,7 @@ use object::{self, Object};
 use object::item::{self, Function};
 use map::{self, Map};
 use ui::Ui;
-use utils;
+use util;
 
 
 #[derive(Clone, Copy, Debug, PartialEq, RustcEncodable, RustcDecodable)]
@@ -67,7 +67,7 @@ pub fn player_move_or_attack(dx: i32, dy: i32, game: &mut Game,
     match target_id {
         Some(target_id) => {
             let (player, target) =
-                utils::mut_two(consts::PLAYER, target_id, actors);
+                util::mut_two(consts::PLAYER, target_id, actors);
             player.attack(target, &mut game.log);
         }
         None => {

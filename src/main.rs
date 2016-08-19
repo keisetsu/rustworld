@@ -10,7 +10,7 @@ mod log;
 mod map;
 mod object;
 mod ui;
-mod utils;
+mod util;
 
 fn main() {
     game::start_game();
