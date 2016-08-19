@@ -2,7 +2,6 @@ use std::cmp;
 
 use rand::{self, Rng};
 
-use tcod::colors;
 use tcod::bsp::{Bsp, TraverseOrder};
 
 use consts;
@@ -186,7 +185,7 @@ fn traverse_node(node: &mut Bsp, rooms: &mut Vec<Rect>,
                  floor_type: &ObjectClass,
                  mut map: &mut Map) -> bool {
     if node.is_leaf() {
-        let mut minx = node.x + 1;
+        let minx = node.x + 1;
         let mut maxx = node.x + node.w - 1;
         let mut miny = node.y + 1;
         let mut maxy = node.y + node.h - 1;
@@ -208,8 +207,6 @@ fn traverse_node(node: &mut Bsp, rooms: &mut Vec<Rect>,
             node.y = cmp::min(left.y, right.y);
             node.w = cmp::max(left.x + left.w, right.x + right.w) - node.x;
             node.h = cmp::max(left.y + left.h, right.y + right.h) - node.y;
-            println!("({:?}, {:?}), ({:?}, {:?})", node.x, node.y, node.x + node.w,
-                     node.y + node.h);
             let ref mut door_randomizer = object_types.create_randomizer("door")
                 .unwrap();
             if node.horizontal() {
@@ -227,10 +224,10 @@ fn traverse_node(node: &mut Bsp, rooms: &mut Vec<Rect>,
 
 pub fn make_map(mut actors: &mut Vec<Object>) -> Map {
     let mut map = vec![];
-    let mut actor_types = object::load::load_objects(
-        "data/objects/actors.json", object::ObjectCategory::Actor).unwrap();
-    let mut item_types = object::load::load_objects(
-        "data/objects/items.json", object::ObjectCategory::Item).unwrap();
+    let actor_types = object::load::load_objects(
+        "data/objects/actors.json").unwrap();
+    let item_types = object::load::load_objects(
+        "data/objects/items.json").unwrap();
     let wall_class = item_types.get_class("brick wall");
     let concrete_floor = item_types.get_class("concrete floor");
     for x in 0..FLOOR_WIDTH {
@@ -249,7 +246,6 @@ pub fn make_map(mut actors: &mut Vec<Object>) -> Map {
     bsp.traverse(TraverseOrder::InvertedLevelOrder, |node| {
         traverse_node(node, &mut rooms, &item_types, &concrete_floor, &mut map)
     });
-    println!("{:?}", rooms);
     place_objects(&mut actors, 1, rooms, &mut map, &item_types);
     map
 }

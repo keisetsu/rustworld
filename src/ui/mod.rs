@@ -71,10 +71,10 @@ pub fn initialize_fov(map: &Map, actors: &[Object], game_ui: &mut Ui) {
     for y in 0..map::FLOOR_HEIGHT {
         for x in 0..map::FLOOR_WIDTH {
             game_ui.fov.set(x, y,
-                         map::blocks_view(x, y, map, actors) !=
-                            object::Blocks::Full,
-                            map::is_blocked(x, y,  map, actors) !=
-                            object::Blocks::Full
+                         map::blocks_view(x, y, map, actors) ==
+                            object::Blocks::No,
+                            map::is_blocked(x, y,  map, actors) ==
+                            object::Blocks::No
             );
         }
     }

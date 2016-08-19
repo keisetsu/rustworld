@@ -1,5 +1,3 @@
-use rustc_serialize;
-
 use rand::{self, Rng};
 
 use tcod::map::Map as FovMap;

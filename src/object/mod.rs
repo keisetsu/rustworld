@@ -1,7 +1,3 @@
-use std::fmt::{self, Debug, Display};
-
-use rustc_serialize;
-
 use tcod::colors::Color;
 use tcod::console::{
     BackgroundFlag,
@@ -31,15 +27,19 @@ pub enum ObjectCategory{
 
 // #[derive(Debug, PartialEq, Eq, Hash)]
 // pub enum ObjectType {
-//     ActorZombie,
-//     ItemAmmo,
-//     ItemDrink,
-//     ItemEnvironmental,
-//     ItemEnvironmentalWeapon,
-//     ItemFood,
-//     ItemHealth,
-//     ItemMeleeWeapon,
-//     ItemRangedWeapon,
+//     Zombie,
+//     Ammo,
+//     Drink,
+//     Environmental,
+//     EnvironmentalWeapon,
+//     Food,
+//     Health,
+//     MeleeWeapon,
+//     RangedWeapon,
+//     Stairs,
+//     Floor,
+//     Wall,
+//     Door,
 // }
 
 // impl fmt::Display for ObjectType {
@@ -48,22 +48,22 @@ pub enum ObjectCategory{
 //     }
 // }
 
-const ACTOR_TYPES: &'static [ &'static str ] = &[ "zombie" ];
+// const ACTOR_TYPES: &'static [ &'static str ] = &[ "zombie" ];
 
-const ITEM_TYPES: &'static [ &'static str ] = &[
-    "ammo",
-    "drink",
-    "environmental",
-    "environmental weapon",
-    "food",
-    "health",
-    "melee weapon",
-    "ranged weapon",
-    "stairs",
-    "floor",
-    "wall",
-    "door",
-];
+// const ITEM_TYPES: &'static [ &'static str ] = &[
+//     "ammo",
+//     "drink",
+//     "environmental",
+//     "environmental weapon",
+//     "food",
+//     "health",
+//     "melee weapon",
+//     "ranged weapon",
+//     "stairs",
+//     "floor",
+//     "wall",
+//     "door",
+// ];
 
 #[derive(Debug, Clone)]
 pub struct ObjectClass {
