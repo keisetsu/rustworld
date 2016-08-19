@@ -10,7 +10,7 @@ use object::Object;
 use object::actor;
 
 use consts;
-use utils;
+use util;
 
 use game::Game;
 
@@ -49,7 +49,7 @@ fn ai_basic(monster_id: usize, game: &mut Game, actors: &mut [Object],
             let (player_x, player_y) = actors[consts::PLAYER].pos();
             actor::move_towards(monster_id, player_x, player_y, &mut game.map, actors);
         } else if actors[consts::PLAYER].fighter.map_or(false, |f| f.hp > 0) {
-            let (monster, player) = utils::mut_two(monster_id, consts::PLAYER, actors);
+            let (monster, player) = util::mut_two(monster_id, consts::PLAYER, actors);
             monster.attack(player, &mut game.log);
         }
     } else {
@@ -66,7 +66,7 @@ fn ai_chrysalis(monster_id: usize, game: &mut Game, actors: &mut [Object],
             let (player_x, player_y) = actors[consts::PLAYER].pos();
             actor::move_towards(monster_id, player_x, player_y, &mut game.map, actors);
         } else if actors[consts::PLAYER].fighter.map_or(false, |f| f.hp > 0) {
-            let (monster, player) = utils::mut_two(monster_id, consts::PLAYER, actors);
+            let (monster, player) = util::mut_two(monster_id, consts::PLAYER, actors);
             monster.attack(player, &mut game.log);
         }
     }

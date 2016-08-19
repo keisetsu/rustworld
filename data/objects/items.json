@@ -40,4 +40,46 @@
         "item": null,
         "inventory": null,
         "object_type": "stairs"
+},{
+        "name": "concrete floor",
+        "description": "Unadorned concrete floor",
+        "blocks": "no",
+        "blocks_view": "no",
+        "symbol": ">",
+        "color": [127, 127, 127],
+        "alive": false,
+        "chance": 20,
+        "context": "any",
+        "ai": null,
+        "item": null,
+        "inventory": null,
+        "object_type": "floor"
+},{
+        "name": "brick wall",
+        "description": "Rough brick wall",
+        "blocks": "full",
+        "blocks_view": "full",
+        "symbol": " ",
+        "color": [127, 127, 127],
+        "alive": false,
+        "chance": 20,
+        "context": "any",
+        "ai": null,
+        "item": null,
+        "inventory": null,
+        "object_type": "wall"
+},{
+        "name": "metal door",
+        "description": "A heavy metal door",
+        "blocks": "no",
+        "blocks_view": "no",
+        "symbol": "+",
+        "color": [127, 127, 127],
+        "alive": false,
+        "chance": 20,
+        "context": "any",
+        "ai": null,
+        "item": null,
+        "inventory": null,
+        "object_type": "door"
 }]

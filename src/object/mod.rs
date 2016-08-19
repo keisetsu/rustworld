@@ -60,6 +60,9 @@ const ITEM_TYPES: &'static [ &'static str ] = &[
     "melee weapon",
     "ranged weapon",
     "stairs",
+    "floor",
+    "wall",
+    "door",
 ];
 
 #[derive(Debug, Clone)]
@@ -78,6 +81,26 @@ pub struct ObjectClass {
     pub name: String,
     pub object_type: String,
     pub symbol: char,
+}
+
+impl ObjectClass {
+    pub fn create_object(&self) -> Object {
+        Object{
+            ai: self.ai.clone(),
+            alive: self.alive,
+            blocks: self.blocks,
+            blocks_view: self.blocks_view,
+            color: self.color,
+            fighter: self.fighter,
+            function: self.function,
+            inventory: self.inventory.clone(),
+            name: self.name.to_string(),
+            object_type: self.object_type.to_string(),
+            symbol: self.symbol,
+            x: 0,
+            y: 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone, RustcEncodable, RustcDecodable)]
