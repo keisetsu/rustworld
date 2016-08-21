@@ -16,21 +16,21 @@ use util::owned_weighted_choice::OwnedWeightedChoice;
 
 #[derive(Debug, RustcDecodable)]
 struct JsonObjectClass {
-    name: String,
-    description: String,
+    ai: Option<ai::Ai>,
+    alive: bool,
     blocks: object::Blocks,
     blocks_view: object::Blocks,
-    symbol: char,
-    color: (u8, u8, u8),
-    alive: bool,
-    chance: u32,
-    context: String,
-    fighter: Option<String>,
-    ai: Option<String>,
-    function: Option<String>,
-    inventory: Option<Vec<String>>,
-    object_type: String,
     can_pick_up: bool,
+    chance: u32,
+    color: (u8, u8, u8),
+    context: String,
+    description: String,
+    fighter: Option<object::actor::Fighter>,
+    function: Option<object::item::Function>,
+    inventory: Option<Vec<object::Object>>,
+    name: String,
+    object_type: String,
+    symbol: char,
 }
 
 #[derive(Debug, RustcDecodable)]
@@ -119,13 +119,8 @@ pub fn load_objects(filename: &str) ->
     for class in classes {
         let (r, g, b) = class.color;
         let color = Color::new(r, g, b);
-        // let blocks = get_blocks(&class.blocks);
-        // let blocks_view = get_blocks(&class.blocks_view);
-        let ai = get_ai(class.ai);
-        let function = get_function(class.function);
-        let fighter = get_fighter(class.fighter);
         let new_class = object::ObjectClass{
-            ai: ai,
+            ai: class.ai,
             alive: class.alive,
             can_pick_up: class.can_pick_up,
             chance: class.chance,
@@ -134,9 +129,9 @@ pub fn load_objects(filename: &str) ->
             color: color,
             context: class.context,
             description: class.description,
-            fighter: fighter,
-            function: function,
-            inventory: None,
+            fighter: class.fighter,
+            function: class.function,
+            inventory: class.inventory,
             name: class.name,
             object_type: class.object_type.clone(),
             symbol: class.symbol,
@@ -144,39 +139,4 @@ pub fn load_objects(filename: &str) ->
         return_val.add_class(class.object_type, new_class);
     }
     Ok(return_val)
-}
-
-fn get_ai(ai_option: Option<String>) -> Option<ai::Ai> {
-    if let Some(ai) = ai_option  {
-        match ai.as_str() {
-            "basic" => return Some(ai::Ai::Basic),
-            "chrysalis" => return Some(ai::Ai::Chrysalis),
-            _ => return None
-        }
-    }
-    None
-}
-
-fn get_function(function_option: Option<String>) -> Option<item::Function> {
-    if let Some(function) = function_option {
-        match function.as_str() {
-            "fireball" => return Some(item::Function::Fireball),
-            "heal" => return Some(item::Function::Heal),
-            _ => return None
-        }
-    }
-    None
-}
-
-fn get_blocks(blocks: &str) -> object::Blocks {
-    match blocks {
-        "no" => object::Blocks::No,
-        "half" => object::Blocks::Half,
-        "full" => object::Blocks::Full,
-        _ => unreachable!()
-    }
-}
-
-fn get_fighter(fighter: Option<String>) -> Option<actor::Fighter> {
-    None
 }

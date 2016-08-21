@@ -4,7 +4,7 @@
     ],
     "classes":
     [{
-        "ai": null,
+        "ai": "Basic",
         "alive": true,
         "blocks": "Full",
         "blocks_view": "No",
@@ -20,7 +20,7 @@
         "symbol": "Z"
     },
      {
-         "ai": null,
+         "ai": "Chrysalis",
          "alive": true,
          "blocks": "Full",
          "blocks_view": "No",
@@ -36,7 +36,7 @@
          "symbol": "Z"
      },
      {
-         "ai": null,
+         "ai": "Basic",
          "alive": true,
          "blocks": "Full",
          "blocks_view": "No",

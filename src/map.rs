@@ -32,7 +32,7 @@ pub struct Tile {
 }
 
 impl Tile {
-    pub fn new(x: i32, y: i32, floor: &ObjectClass) -> Self {
+    pub fn new(floor: &ObjectClass) -> Self {
         Tile{
             floor: floor.create_object(),
             explored: false,
@@ -126,24 +126,21 @@ impl Rect {
 fn create_room(room: &mut Bsp, floor_class: &ObjectClass, map: &mut Map) {
     for x in (room.x)..room.x + room.w {
         for y in (room.y)..room.y + room.h {
-            map[x as usize][y as usize] = Tile::new(x, y,
-                                                    floor_class);
+            map[x as usize][y as usize] = Tile::new(floor_class);
         }
     }
 }
 
-fn place_objects(actors: &mut Vec<Object>, floor: usize,
-                 rooms: Vec<Rect>, map: &mut Map,
+fn place_objects(floor: usize,
+                 rooms: &Vec<Rect>, map: &mut Map,
                  items: &object::load::ObjectTypes) {
 
     if floor == 1 {
         let mut stairs = (0, 0);
-        for room in &rooms {
+        for room in rooms {
             let ref mut door_randomizer = items.create_randomizer("door").unwrap();
             if room.x1 == 1 && room.y1 == 1 {
-                make_door(0, room.y2 / 2,
-                          door_randomizer, map);
-                actors[consts::PLAYER].set_pos(1, room.y2 / 2);
+                make_door(0, room.y2 / 2, door_randomizer, map);
             } else if room.y2 == FLOOR_HEIGHT - 1 || room.x2 == FLOOR_WIDTH - 1 {
                 if stairs == (0, 0) || rand::random() {
                     let stairs_x = room.x1 + ((room.x2 - room.x1)/2);
@@ -159,7 +156,7 @@ fn place_objects(actors: &mut Vec<Object>, floor: usize,
     }
 
     for _ in 0..rand::thread_rng().gen_range(1,3) {
-        let room = rooms[rand::thread_rng().gen_range(0, rooms.len() - 1)];
+        let room = rooms[rand::thread_rng().gen_range(0, rooms.len())];
         let brick_x = room.x1 + 1;
         let brick_y = room.y1 + 2;
         if let Some(ref mut brick_random) = items.create_randomizer(
@@ -169,9 +166,34 @@ fn place_objects(actors: &mut Vec<Object>, floor: usize,
             brick.set_pos(brick_x, brick_y);
             map[brick_x as usize][brick_y as usize].items.push(brick);
         };
+
     }
 
 }
+
+fn place_actors(floor: usize, rooms: &Vec<Rect>, map: &mut Map,
+                actor_types: &object::load::ObjectTypes,
+                actors: &mut Vec<Object>) {
+    for room in rooms {
+        if room.x1 == 1 && room.y1 == 1 {
+            actors[consts::PLAYER].set_pos(1, room.y2 / 2);
+        }
+    }
+
+    for _ in 0..rand::thread_rng().gen_range(1,2) {
+        let room = rooms[rand::thread_rng().gen_range(0, rooms.len())];
+        let x = rand::thread_rng().gen_range(room.x1+1, room.x2);
+        let y = rand::thread_rng().gen_range(room.y1+1, room.y2);
+        if let Some(ref mut zombie_random) = actor_types.create_randomizer(
+            "zombie") {
+            let zombie_class = &mut zombie_random.get_class();
+            let mut zombie = zombie_class.create_object();
+            zombie.set_pos(x, y);
+            actors.push(zombie);
+        }
+    }
+}
+
 fn make_door(x: i32, y: i32, door_randomizer: &mut ObjectRandomizer,
              map: &mut Map) {
     let door_class = door_randomizer.get_class();
@@ -233,7 +255,7 @@ pub fn make_map(mut actors: &mut Vec<Object>) -> Map {
     for x in 0..FLOOR_WIDTH {
         map.push(vec![]);
         for y in 0..FLOOR_HEIGHT {
-            let mut wall_tile: Tile = Tile::new(x, y, &concrete_floor);
+            let mut wall_tile: Tile = Tile::new(&concrete_floor);
             let mut brick_wall = wall_class.create_object();
             brick_wall.set_pos(x, y);
             wall_tile.items.push(brick_wall);
@@ -246,6 +268,7 @@ pub fn make_map(mut actors: &mut Vec<Object>) -> Map {
     bsp.traverse(TraverseOrder::InvertedLevelOrder, |node| {
         traverse_node(node, &mut rooms, &item_types, &concrete_floor, &mut map)
     });
-    place_objects(&mut actors, 1, rooms, &mut map, &item_types);
+    place_objects(1, &rooms, &mut map, &item_types);
+    place_actors(1, &rooms, &mut map, &actor_types, &mut actors);
     map
 }
