@@ -71,8 +71,8 @@ pub fn initialize_fov(map: &Map, actors: &[Object], game_ui: &mut Ui) {
     for y in 0..map::FLOOR_HEIGHT {
         for x in 0..map::FLOOR_WIDTH {
             game_ui.fov.set(x, y,
-                         map::blocks_view(x, y, map, actors) ==
-                            object::Blocks::No,
+                         map::blocks_view(x, y, map, actors) !=
+                            object::Blocks::Full,
                             map::is_blocked(x, y,  map, actors) ==
                             object::Blocks::No
             );
@@ -132,10 +132,13 @@ pub fn render_all(game_ui: &mut Ui, game: &mut Game, actors: &[Object],
                 // let wall = game.map[x as usize][y as usize].blocks_view();
                 let color = match(visible, wall) {
                     (false, object::Blocks::Full) => COLOR_DARK_WALL,
-                    (false, object::Blocks::No) => COLOR_DARK_GROUND,
+                    (false, object::Blocks::No) |
+                    (false, object::Blocks::Half)
+                    => COLOR_DARK_GROUND,
                     (true, object::Blocks::Full) => COLOR_LIGHT_WALL,
-                    (true, object::Blocks::No) => COLOR_LIGHT_GROUND,
-                    (_, _) => COLOR_LIGHT_GROUND,
+                    (true, object::Blocks::No) |
+                    (true, object::Blocks::Half) => COLOR_LIGHT_GROUND,
+                    // (_, _) => COLOR_LIGHT_GROUND,
                 };
                 let explored =
                     &mut game_tile.explored;

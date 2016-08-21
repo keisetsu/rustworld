@@ -71,13 +71,14 @@ pub struct ObjectClass {
     pub alive: bool,
     pub blocks: Blocks,
     pub blocks_view: Blocks,
+    pub can_pick_up: bool,
     pub chance: u32,
     pub color: Color,
     pub context: String,
     pub description: String,
     pub fighter: Option<actor::Fighter>,
     pub function: Option<item::Function>,
-    pub inventory: Option<Box<Vec<Object>>>,
+    pub inventory: Option<Vec<Object>>,
     pub name: String,
     pub object_type: String,
     pub symbol: char,
@@ -90,6 +91,7 @@ impl ObjectClass {
             alive: self.alive,
             blocks: self.blocks,
             blocks_view: self.blocks_view,
+            can_pick_up: self.can_pick_up,
             color: self.color,
             fighter: self.fighter,
             function: self.function,
@@ -109,10 +111,11 @@ pub struct Object {
     pub alive: bool,
     pub blocks: Blocks,
     pub blocks_view: Blocks,
+    pub can_pick_up: bool,
     pub color: Color,
     pub fighter: Option<actor::Fighter>,
     pub function: Option<item::Function>,
-    pub inventory: Option<Box<Vec<Object>>>,
+    pub inventory: Option<Vec<Object>>,
     pub name: String,
     pub object_type: String,
     pub symbol: char,
@@ -122,6 +125,7 @@ pub struct Object {
 
 impl Object {
     pub fn new(x: i32, y: i32, symbol: char, name: &str,
+               can_pick_up: bool,
                color: Color, blocks: Blocks,
                blocks_view: Blocks) -> Self {
         Object {
@@ -129,6 +133,7 @@ impl Object {
             alive: false,
             blocks: blocks,
             blocks_view: blocks_view,
+            can_pick_up: can_pick_up,
             color: color,
             fighter: None,
             function: None,
@@ -138,24 +143,6 @@ impl Object {
             symbol: symbol,
             x: x,
             y: y,
-        }
-    }
-
-    pub fn from_class(object_class: &ObjectClass) -> Self {
-        Object{
-            ai: object_class.ai.clone(),
-            alive: object_class.alive,
-            blocks: object_class.blocks,
-            blocks_view: object_class.blocks_view,
-            color: object_class.color,
-            fighter: object_class.fighter,
-            function: object_class.function,
-            inventory: object_class.inventory.clone(),
-            name: object_class.name.to_string(),
-            object_type: object_class.object_type.to_string(),
-            symbol: object_class.symbol,
-            x: 0,
-            y: 0,
         }
     }
 

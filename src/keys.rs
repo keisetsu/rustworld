@@ -113,43 +113,42 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
         ///////////////////////////////////////////////////
         (Key { printable: ',', ..}, true) => {
             let (player_x, player_y) = actors[consts::PLAYER].pos();
-            let names = game.map[player_x as usize][player_y as usize]
-                .items.iter().
-                map(|obj| obj.name.clone())
-                .collect::<Vec<_>>();
-
-            game.log.info(names.join(", "));
-
-            let item_id = actors.iter().position(
-                |object| {
-                    object.pos() == actors[consts::PLAYER].pos() &&
-                        object.function.is_some()
-                });
-            if let Some(item_id) = item_id {
-                actor::pick_item_up(item_id, game, actors);
-            }
+            if let Some(ref mut player_inventory) =
+                actors[consts::PLAYER].inventory {
+                    actor::pick_up_items(player_x, player_y, player_inventory,
+                                         game);
+                };
             DidntTakeTurn
         }
         (Key { printable: 'i', ctrl: false, alt: false, .. }, true) => {
-            let inventory_index = inventory_menu(
-                &mut game.inventory,
-                "Press the key next to an item to use it, \
-                 or any other to cancel.\n",
-                &mut game_ui.root);
-            if let Some(inventory_index) = inventory_index {
-                actor::use_item(game_ui, game, inventory_index, actors);
-            }
+            if let Some(ref mut player_inventory) =
+                actors[consts::PLAYER].inventory {
+                    let inventory_index = inventory_menu(
+                        &player_inventory,
+                        "Press the key next to an item to use it, \
+                         or any other to cancel.\n",
+                        &mut game_ui.root);
+                    if let Some(inventory_index) = inventory_index {
+                        actor::use_item(game_ui, game, inventory_index,
+                                        player_inventory);
+                    }
+                }
             DidntTakeTurn
         }
         (Key { printable: 'd', ctrl: false, alt: false, .. }, true) => {
-            let inventory_index = inventory_menu(
-                &mut game.inventory,
-                "Press the key next to an item to drop it, \
-                 or any other to cancel.\n",
-                &mut game_ui.root);
-            if let Some(inventory_index) = inventory_index {
-                actor::drop_item(inventory_index, game, actors);
-            }
+            let (x, y) = actors[consts::PLAYER].pos();
+            if let Some(ref mut player_inventory) =
+                actors[consts::PLAYER].inventory {
+                    let inventory_index = inventory_menu(
+                        &player_inventory,
+                        "Press the key next to an item to drop it, \
+                         or any other to cancel.\n",
+                        &mut game_ui.root);
+                    if let Some(inventory_index) = inventory_index {
+                        actor::drop_item(x, y, inventory_index, game,
+                                         player_inventory);
+                    }
+                }
             DidntTakeTurn
         }
         (Key { printable: '>', ctrl: false, alt: false, .. }, true) => {

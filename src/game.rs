@@ -21,7 +21,6 @@ use ui;
 pub struct Game {
     pub map: Map,
     pub log: log::Messages,
-    pub inventory: Vec<Object>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -54,19 +53,18 @@ pub fn load_game() -> Result<(Vec<Object>, Game), Box<Error>> {
 
 pub fn new_game(game_ui: &mut ui::Ui) -> (Vec<Object>, Game) {
 
-    let mut player = Object::new(4, 4, '@', "player", colors::WHITE,
+    let mut player = Object::new(4, 4, '@', "player", false, colors::WHITE,
                                  object::Blocks::Full, object::Blocks::No);
     player.alive = true;
     player.fighter = Some(actor::Fighter{
         max_hp: 30, hp: 30, defense: 2, power: 5,
         on_death: actor::DeathCallback::Player,
     });
+    player.inventory = Some(vec![]);
     let mut actors = vec![player];
     let mut game = Game {
-        // map: map::make_map(&mut actors),
         map: map::make_map(&mut actors),
         log: vec![],
-        inventory: vec![],
     };
 
     ui::initialize_fov(&game.map, &actors, game_ui);

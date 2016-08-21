@@ -30,6 +30,7 @@ struct JsonObjectClass {
     function: Option<String>,
     inventory: Option<Vec<String>>,
     object_type: String,
+    can_pick_up: bool,
 }
 
 #[derive(Debug, RustcDecodable)]
@@ -126,6 +127,7 @@ pub fn load_objects(filename: &str) ->
         let new_class = object::ObjectClass{
             ai: ai,
             alive: class.alive,
+            can_pick_up: class.can_pick_up,
             chance: class.chance,
             blocks: class.blocks,
             blocks_view: class.blocks_view,

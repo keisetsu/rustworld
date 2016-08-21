@@ -93,41 +93,46 @@ fn monster_death(monster: &mut Object, log: &mut log::Messages) {
     monster.name = format!("remains of {}", monster.name);
 }
 
-pub fn drop_item(inventory_id: usize, game: &mut Game,
-             actors: &mut Vec<Object>) {
-    let mut item = game.inventory.remove(inventory_id);
-    item.set_pos(actors[consts::PLAYER].x, actors[consts::PLAYER].y);
+pub fn drop_item(x: i32, y: i32, inventory_id: usize, game: &mut Game,
+             inventory: &mut Vec<Object>) {
+    let mut item = inventory.remove(inventory_id);
+    item.set_pos(x, y);
     game.log.info(format!("You dropped a {}.", item.name));
-    actors.push(item);
+    game.map[x as usize][y as usize].items.push(item);
 }
 
-pub fn pick_item_up(object_id: usize, game: &mut Game,
-                actors: &mut Vec<Object>) {
-    if game.inventory.len() as i32 >= consts::MAX_INVENTORY_ITEMS {
-        game.log.alert(
-                format!("Your inventory is full, cannot pickup {}.",
-                        actors[object_id].name));
-    } else {
-        let item = actors.swap_remove(object_id);
-        game.log.success( format!("You picked up a {}!", item.name));
-        game.inventory.push(item);
+pub fn pick_up_items(x: i32, y: i32, inventory: &mut Vec<Object>, game: &mut Game) {
+    let mut names = vec![];
+    let ref mut items = game.map[x as usize][y as usize].items;
+    for item_ix in (0..items.len()).rev() {
+        if items[item_ix].can_pick_up {
+            let mut item = items.swap_remove(item_ix);
+            item.set_pos(-1, -1);
+            names.push(item.name.clone());
+            inventory.push(item);
+        }
     }
+    if names.len() > 0{
+        game.log.info(format!("You picked up {}", names.join(", ")));
+    }
+
 }
 
-pub fn use_item(game_ui: &mut Ui, game: &mut Game, inventory_id: usize,
-            actors: &mut [Object]) {
-    if let Some(item) = game.inventory[inventory_id].function {
+pub fn use_item(game_ui: &mut Ui, game: &mut Game,
+                inventory_id: usize, inventory: &mut Vec<Object>) {
+    println!("{:?}", inventory.len());
+    if let Some(function) = inventory[inventory_id].function {
         let on_use:
         fn(&mut Ui, &mut Game, &mut [Object])
-           -> item::UseResult = match item {
+           -> item::UseResult = match function {
             Function::Confuse => item::cast_confuse,
             Function::Fireball => item::cast_fireball,
             Function::Heal => item::heal_player,
             Function::Lightning => item::cast_lightning,
         };
-        match on_use(game_ui, game, actors) {
+        match on_use(game_ui, game, inventory) {
             item::UseResult::UsedUp => {
-                game.inventory.remove(inventory_id);
+                inventory.remove(inventory_id);
             }
             item::UseResult::Cancelled => {
                 game.log.info( "Cancelled");
@@ -135,7 +140,7 @@ pub fn use_item(game_ui: &mut Ui, game: &mut Game, inventory_id: usize,
         }
     } else {
         game.log.alert(
-                format!("The {} cannot be used.",
-                        game.inventory[inventory_id].name));
+            format!("The {} cannot be used.",
+                    inventory[inventory_id].name));
     }
 }
