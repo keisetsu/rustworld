@@ -110,7 +110,7 @@ pub fn play_game(actors: &mut Vec<Object>, game: &mut Game, game_ui: &mut ui::Ui
             player_action != PlayerAction::DidntTakeTurn {
                 for id in 0..actors.len() {
                     if actors[id].ai.is_some() {
-                        ai::ai_take_turn(id, game, actors, &game_ui.fov);
+                        ai::take_turn(id, game, actors, &game_ui.fov);
                     }
                 }
             }

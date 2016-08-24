@@ -25,46 +25,6 @@ pub enum ObjectCategory{
     Item
 }
 
-// #[derive(Debug, PartialEq, Eq, Hash)]
-// pub enum ObjectType {
-//     Zombie,
-//     Ammo,
-//     Drink,
-//     Environmental,
-//     EnvironmentalWeapon,
-//     Food,
-//     Health,
-//     MeleeWeapon,
-//     RangedWeapon,
-//     Stairs,
-//     Floor,
-//     Wall,
-//     Door,
-// }
-
-// impl fmt::Display for ObjectType {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         fmt::Debug::fmt(self, f)
-//     }
-// }
-
-// const ACTOR_TYPES: &'static [ &'static str ] = &[ "zombie" ];
-
-// const ITEM_TYPES: &'static [ &'static str ] = &[
-//     "ammo",
-//     "drink",
-//     "environmental",
-//     "environmental weapon",
-//     "food",
-//     "health",
-//     "melee weapon",
-//     "ranged weapon",
-//     "stairs",
-//     "floor",
-//     "wall",
-//     "door",
-// ];
-
 #[derive(Debug, Clone)]
 pub struct ObjectClass {
     pub ai: Option<Ai>,
@@ -175,7 +135,7 @@ impl Object {
         ((dx.pow(2) + dy.pow(2)) as f32).sqrt()
     }
 
-    pub fn take_damage(&mut self, damage: i32, messages: &mut log::Messages) {
+    pub fn take_damage(&mut self, damage: i32, log: &mut log::Messages) {
         if let Some(ref mut fighter) = self.fighter {
             if damage > 0 {
                 if damage >= fighter.hp {
@@ -189,7 +149,7 @@ impl Object {
 
         if !self.alive {
             if let Some(fighter) = self.fighter {
-                fighter.on_death.callback(self, messages);
+                fighter.on_death.callback(self, log);
             }
         }
     }

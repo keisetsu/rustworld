@@ -15,6 +15,13 @@
         "description": "A zombie with fast legs",
         "inventory": null,
         "item": null,
+        "fighter": {
+            "max_hp": 20,
+            "hp": 20,
+            "defense": 3,
+            "power": 5,
+            "on_death": "Monster"
+        },
         "name": "Runner zombie",
         "object_type": "zombie",
         "symbol": "Z"
@@ -28,7 +35,14 @@
          "chance": 70,
          "color": [255,0,255],
          "context": "any",
-         "description": "A zombie that is still transforming",
+         "description": "A zombie that is still transforming and won't attack unless provoked",
+         "fighter": {
+             "max_hp": 20,
+             "hp": 20,
+             "defense": 3,
+             "power": 5,
+             "on_death": "Monster"
+         },
          "inventory": null,
          "item": null,
          "name": "Chrysalis zombie",
@@ -45,6 +59,13 @@
          "color": [255,0,255],
          "context": "any",
          "description": "A zombie that is still transforming",
+         "fighter": {
+             "max_hp": 20,
+             "hp": 20,
+             "defense": 3,
+             "power": 5,
+             "on_death": "Monster"
+         },
          "inventory": null,
          "item": null,
          "name": "Stalker zombie",

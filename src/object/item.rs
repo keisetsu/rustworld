@@ -17,10 +17,10 @@ pub enum UseResult {
 
 #[derive(Clone, Copy, Debug, PartialEq, RustcEncodable, RustcDecodable)]
 pub enum Function {
-    Confuse,
     Fireball,
     Heal,
     Lightning,
+    Stun,
 }
 
 pub fn heal_player(_game_ui: &mut Ui, game: &mut Game,
@@ -44,7 +44,7 @@ pub fn cast_confuse(game_ui: &mut Ui, game: &mut Game,
     let monster_id = target_monster(game_ui, game, actors, Some(5.0));
     if let Some(monster_id) = monster_id {
         let old_ai = actors[monster_id].ai.take().unwrap_or(Ai::Basic);
-        actors[monster_id].ai = Some(Ai::Confused {
+        actors[monster_id].ai = Some(Ai::Stunned {
             previous_ai: Box::new(old_ai),
             num_turns: 3,
         });
@@ -57,6 +57,24 @@ pub fn cast_confuse(game_ui: &mut Ui, game: &mut Game,
         UseResult::Cancelled
     }
 }
+
+// pub fn stun(game_ui: &mut Ui, game: &mut Game,
+//             actors: &mut [Object]) -> UseResult {
+//     if let Some(monster_id) = monster_id {
+//         let old_ai = actors[monster_id].ai.take().unwrap_or(Ai::Basic);
+//         actors[monster_id].ai = Some(Ai::Stunned {
+//             previous_ai: Box::new(old_ai),
+//             num_turns: 3,
+//         });
+//         game.log.info(
+//             format!("The eyes of the {} look vacant and it starts to \
+//                      stumble around!", actors[monster_id].name));
+//         UseResult::UsedUp
+//     } else {
+//         game.log.alert( "No enemy is within range.");
+//         UseResult::Cancelled
+//     }
+// }
 
 pub fn cast_fireball(game_ui: &mut Ui, game: &mut Game,
                      actors: &mut [Object]) -> UseResult {

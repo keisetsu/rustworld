@@ -125,7 +125,7 @@ pub fn use_item(game_ui: &mut Ui, game: &mut Game,
         let on_use:
         fn(&mut Ui, &mut Game, &mut [Object])
            -> item::UseResult = match function {
-            Function::Confuse => item::cast_confuse,
+            Function::Stun => item::cast_confuse,
             Function::Fireball => item::cast_fireball,
             Function::Heal => item::heal_player,
             Function::Lightning => item::cast_lightning,
