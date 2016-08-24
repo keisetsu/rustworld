@@ -131,28 +131,29 @@ fn create_room(room: &mut Bsp, floor_class: &ObjectClass, map: &mut Map) {
     }
 }
 
-fn place_objects(floor: usize,
-                 rooms: &Vec<Rect>, map: &mut Map,
-                 items: &object::load::ObjectTypes) {
-
-    if floor == 1 {
-        let mut stairs = (0, 0);
-        for room in rooms {
-            let ref mut door_randomizer = items.create_randomizer("door").unwrap();
-            if room.x1 == 1 && room.y1 == 1 {
-                make_door(0, room.y2 / 2, door_randomizer, map);
-            } else if room.y2 == FLOOR_HEIGHT - 1 || room.x2 == FLOOR_WIDTH - 1 {
-                if stairs == (0, 0) || rand::random() {
-                    let stairs_x = room.x1 + ((room.x2 - room.x1)/2);
-                    let stairs_y = room.y1 + ((room.y2 - room.y1)/2);
-                    stairs = (stairs_x, stairs_y);
-                }
+fn place_objects(floor: usize, rooms: &Vec<Rect>, map: &mut Map,
+                 items: &object::load::ObjectTypes, stairs: (i32, i32))
+                 -> (i32, i32) {
+    let mut stairs_loc = stairs;
+    for room in rooms {
+        let ref mut door_randomizer = items.create_randomizer("door").unwrap();
+        if room.x1 == 1 && room.y1 == 1 {
+            make_door(0, room.y2 / 2, door_randomizer, map);
+        } else if room.y2 == FLOOR_HEIGHT - 1 || room.x2 == FLOOR_WIDTH - 1 {
+            if stairs_loc == (0, 0) || rand::random() {
+                let stairs_x = room.x1 + ((room.x2 - room.x1)/2);
+                let stairs_y = room.y1 + ((room.y2 - room.y1)/2);
+                stairs_loc = (stairs_x, stairs_y);
             }
         }
-        let (stairs_x, stairs_y) = stairs;
-        let mut stairs_up = items.get_class("stairs up").create_object();
-        stairs_up.set_pos(stairs_x, stairs_y);
-        map[stairs_x as usize][stairs_y as usize].items.push(stairs_up);
+
+        let mut stairs_obj = items.get_class("stairs").create_object();
+        if floor == 1{
+            stairs_obj = items.get_class("stairs up").create_object();
+        }
+        let (stairs_x, stairs_y) = stairs_loc;
+        stairs_obj.set_pos(stairs_x, stairs_y);
+        map[stairs_x as usize][stairs_y as usize].items.push(stairs_obj);
     }
 
     for _ in 0..rand::thread_rng().gen_range(1,3) {
@@ -169,6 +170,7 @@ fn place_objects(floor: usize,
 
     }
 
+    stairs_loc
 }
 
 fn place_actors(floor: usize, rooms: &Vec<Rect>, map: &mut Map,
@@ -268,7 +270,7 @@ pub fn make_map(mut actors: &mut Vec<Object>) -> Map {
     bsp.traverse(TraverseOrder::InvertedLevelOrder, |node| {
         traverse_node(node, &mut rooms, &item_types, &concrete_floor, &mut map)
     });
-    place_objects(1, &rooms, &mut map, &item_types);
+    let mut stairs = place_objects(1, &rooms, &mut map, &item_types, (0,0));
     place_actors(1, &rooms, &mut map, &actor_types, &mut actors);
     map
 }
