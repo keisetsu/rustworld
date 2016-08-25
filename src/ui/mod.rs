@@ -126,8 +126,8 @@ pub fn render_all(game_ui: &mut Ui, game: &mut Game, actors: &[Object],
             for y in 0..map::FLOOR_HEIGHT {
                 let wall = map::blocks_view(x, y, & game.map, actors);
                 let game_tile = &mut game.map[x as usize][y as usize];
-                let visible = game_ui.fov.is_in_fov(x, y);
-                // let visible = true;
+                // let visible = game_ui.fov.is_in_fov(x, y);
+                let visible = true;
 
                 // let wall = game.map[x as usize][y as usize].blocks_view();
                 let color = match(visible, wall) {

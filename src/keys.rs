@@ -159,7 +159,8 @@ pub fn handle_keys(key: Key, game_ui: &mut Ui, game: &mut Game,
             //     });
             let (player_x, player_y) = actors[consts::PLAYER].pos();
             let player_on_stairs = game.map[player_x as usize][player_y as usize]
-                .items.iter().any(|object| object.name == "stairs up");
+                .items.iter().any(|object| object.name == "stairs up" ||
+                                  object.name == "stairs");
             if player_on_stairs {
                 game.log.success("Go upstairs!");
             }

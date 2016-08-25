@@ -135,26 +135,34 @@ fn place_objects(floor: usize, rooms: &Vec<Rect>, map: &mut Map,
                  items: &object::load::ObjectTypes, stairs: (i32, i32))
                  -> (i32, i32) {
     let mut stairs_loc = stairs;
-    for room in rooms {
+    let mut stairs_rooms = vec![];
+    for (room_ix, room) in rooms.iter().enumerate() {
         let ref mut door_randomizer = items.create_randomizer("door").unwrap();
         if room.x1 == 1 && room.y1 == 1 {
             make_door(0, room.y2 / 2, door_randomizer, map);
-        } else if room.y2 == FLOOR_HEIGHT - 1 || room.x2 == FLOOR_WIDTH - 1 {
-            if stairs_loc == (0, 0) || rand::random() {
-                let stairs_x = room.x1 + ((room.x2 - room.x1)/2);
-                let stairs_y = room.y1 + ((room.y2 - room.y1)/2);
-                stairs_loc = (stairs_x, stairs_y);
-            }
+        } else if stairs == (0, 0) && (room.y2 == FLOOR_HEIGHT - 1 || room.x2 == FLOOR_WIDTH - 1) {
+            stairs_rooms.push(room_ix);
         }
-
-        let mut stairs_obj = items.get_class("stairs").create_object();
-        if floor == 1{
-            stairs_obj = items.get_class("stairs up").create_object();
-        }
-        let (stairs_x, stairs_y) = stairs_loc;
-        stairs_obj.set_pos(stairs_x, stairs_y);
-        map[stairs_x as usize][stairs_y as usize].items.push(stairs_obj);
     }
+    println!("{:?}", stairs_loc);
+    if stairs_loc == (0, 0) {
+        let stairs_room = rooms[rand::thread_rng().gen_range(0, stairs_rooms.len())];
+
+        let stairs_x = stairs_room.x1 + ((stairs_room.x2 - stairs_room.x1)/2);
+        let stairs_y = stairs_room.y1 + ((stairs_room.y2 - stairs_room.y1)/2);
+        stairs_loc = (stairs_x, stairs_y);
+    }
+    let (stairs_x, stairs_y) = stairs_loc;
+
+    let mut stairs_key = "stairs";
+    if floor == 1{
+        stairs_key = "stairs up";
+    }
+
+    let mut stairs_obj = items.get_class(stairs_key).create_object();
+    stairs_obj.set_pos(stairs_x, stairs_y);
+    println!("{:?}", stairs_obj);
+    map[stairs_x as usize][stairs_y as usize].items.push(stairs_obj);
 
     for _ in 0..rand::thread_rng().gen_range(1,3) {
         let room = rooms[rand::thread_rng().gen_range(0, rooms.len())];
@@ -182,18 +190,18 @@ fn place_actors(floor: usize, rooms: &Vec<Rect>, map: &mut Map,
         }
     }
 
-    for _ in 0..rand::thread_rng().gen_range(1,2) {
-        let room = rooms[rand::thread_rng().gen_range(0, rooms.len())];
-        let x = rand::thread_rng().gen_range(room.x1+1, room.x2);
-        let y = rand::thread_rng().gen_range(room.y1+1, room.y2);
-        if let Some(ref mut zombie_random) = actor_types.create_randomizer(
-            "zombie") {
-            let zombie_class = &mut zombie_random.get_class();
-            let mut zombie = zombie_class.create_object();
-            zombie.set_pos(x, y);
-            actors.push(zombie);
-        }
-    }
+    // for _ in 0..rand::thread_rng().gen_range(1,2) {
+    //     let room = rooms[rand::thread_rng().gen_range(0, rooms.len())];
+    //     let x = rand::thread_rng().gen_range(room.x1+1, room.x2);
+    //     let y = rand::thread_rng().gen_range(room.y1+1, room.y2);
+    //     if let Some(ref mut zombie_random) = actor_types.create_randomizer(
+    //         "zombie") {
+    //         let zombie_class = &mut zombie_random.get_class();
+    //         let mut zombie = zombie_class.create_object();
+    //         zombie.set_pos(x, y);
+    //         actors.push(zombie);
+    //     }
+    // }
 }
 
 fn make_door(x: i32, y: i32, door_randomizer: &mut ObjectRandomizer,
