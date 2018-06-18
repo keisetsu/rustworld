@@ -89,7 +89,7 @@
         "item": null,
         "name": "concrete floor",
         "object_type": "floor",
-        "symbol": ">"
+        "symbol": " "
     },{
         "ai": null,
         "alive": false,
@@ -165,5 +165,51 @@
         "name": "health kit",
         "object_type": "health",
         "symbol": "h"
+    }, {
+        "ai": null,
+        "alive": false,
+        "blocks": "Full",
+        "blocks_view": "Full",
+        "can_pick_up": false,
+        "chance": 30,
+        "color": [255, 0, 0],
+        "context": "any",
+        "description": "A large chest of drawers",
+        "inventory": null,
+        "item": null,
+        "name": "large dresser",
+        "object_type": "furniture",
+        "symbol": "#"
+    }, {
+        "ai": null,
+        "alive": false,
+        "blocks": "No",
+        "blocks_view": "No",
+        "can_pick_up": false,
+        "chance": 20,
+        "color": [127, 127, 127],
+        "context": "any",
+        "description": "A floor covered in carpeting",
+        "inventory": null,
+        "item": null,
+        "name": "carpet",
+        "object_type": "floor",
+        "symbol": " "
+    }, {
+        "ai": null,
+        "alive": false,
+        "blocks": "Full",
+        "blocks_view": "Full",
+        "can_pick_up": false,
+        "chance": 20,
+        "color": [127, 127, 127],
+        "context": "any",
+        "description": "Simple drywall",
+        "inventory": null,
+        "item": null,
+        "name": "drywall",
+        "object_type": "floor",
+        "symbol": " "
+
     }]
 }

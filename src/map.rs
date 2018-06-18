@@ -24,6 +24,15 @@ pub const MAX_ROOMS: i32 = 30;
 pub const MAX_ROOM_MONSTERS: i32 = 3;
 pub const MAX_ROOM_ITEMS:i32 = 4;
 
+pub enum BuildingType {
+    LargeHome,
+    SmallHome,
+    Office,
+    ApartmentComplex,
+    OfficeComplex,
+    Store,
+}
+
 #[derive(Debug, RustcEncodable, RustcDecodable)]
 pub struct Tile {
     pub floor: Object,
@@ -40,7 +49,7 @@ impl Tile {
     }
 }
 
-pub fn is_blocked(x: i32, y: i32, map: &Map, actors: &[Object]) -> object::Blocks {
+pub fn is_blocked(x: i32, y: i32, map: &Floor, actors: &[Object]) -> object::Blocks {
     // Because actors are stored in a separate place from the map, we need
     // to check both for actors marked as being in a place on the map,
     // as well as all objects in the map location to see if they block
@@ -67,7 +76,7 @@ pub fn is_blocked(x: i32, y: i32, map: &Map, actors: &[Object]) -> object::Block
     blocks
 }
 
-pub fn blocks_view(x: i32, y: i32, map: &Map, actors: &[Object]) -> object::Blocks {
+pub fn blocks_view(x: i32, y: i32, map: &Floor, actors: &[Object]) -> object::Blocks {
     // Because actors are stored in a separate place from the map, we need
     // to check both for actors marked as being in a place on the map,
     // as well as all actors in the map location to see if they block
@@ -94,8 +103,14 @@ pub fn blocks_view(x: i32, y: i32, map: &Map, actors: &[Object]) -> object::Bloc
     blocks
 }
 
-
 pub type Map = Vec<Vec<Tile>>;
+
+pub struct Floor {
+    map: Map,
+    rooms: Vec<Rect>,
+}
+
+pub type BuildingPlan = Vec<Floor>;
 
 #[derive(Clone, Copy, Debug)]
 struct Rect {
@@ -140,13 +155,14 @@ fn place_objects(floor: usize, rooms: &Vec<Rect>, map: &mut Map,
         let ref mut door_randomizer = items.create_randomizer("door").unwrap();
         if room.x1 == 1 && room.y1 == 1 {
             make_door(0, room.y2 / 2, door_randomizer, map);
-        } else if stairs == (0, 0) && (room.y2 == FLOOR_HEIGHT - 1 || room.x2 == FLOOR_WIDTH - 1) {
+        } else if stairs == (0, 0) && (room.y2 == FLOOR_HEIGHT - 1 ||
+                                       room.x2 == FLOOR_WIDTH - 1) {
             stairs_rooms.push(room_ix);
         }
     }
-    println!("{:?}", stairs_loc);
     if stairs_loc == (0, 0) {
-        let stairs_room = rooms[rand::thread_rng().gen_range(0, stairs_rooms.len())];
+        let stairs_room = rooms[rand::thread_rng()
+                                .gen_range(0, stairs_rooms.len())];
 
         let stairs_x = stairs_room.x1 + ((stairs_room.x2 - stairs_room.x1)/2);
         let stairs_y = stairs_room.y1 + ((stairs_room.y2 - stairs_room.y1)/2);
@@ -213,7 +229,7 @@ fn make_door(x: i32, y: i32, door_randomizer: &mut ObjectRandomizer,
 }
 
 fn traverse_node(node: &mut Bsp, rooms: &mut Vec<Rect>,
-                 object_types: &object::load::ObjectTypes,
+                 // object_types: &object::load::ObjectTypes,
                  floor_type: &ObjectClass,
                  mut map: &mut Map) -> bool {
     if node.is_leaf() {
@@ -239,46 +255,66 @@ fn traverse_node(node: &mut Bsp, rooms: &mut Vec<Rect>,
             node.y = cmp::min(left.y, right.y);
             node.w = cmp::max(left.x + left.w, right.x + right.w) - node.x;
             node.h = cmp::max(left.y + left.h, right.y + right.h) - node.y;
-            let ref mut door_randomizer = object_types.create_randomizer("door")
-                .unwrap();
-            if node.horizontal() {
-                make_door(left.x, cmp::max(left.y, right.y) - 1,
-                          door_randomizer, &mut map);
-            } else {
-                make_door(cmp::max(left.x, right.x) - 1, left.y,
-                          door_randomizer, &mut map);
-            }
+            // let ref mut door_randomizer = object_types.create_randomizer("door")
+            //     .unwrap();
+            // if node.horizontal() {
+            //     make_door(left.x, cmp::max(left.y, right.y) - 1,
+            //               door_randomizer, &mut map);
+            // } else {
+            //     make_door(cmp::max(left.x, right.x) - 1, left.y,
+            //               door_randomizer, &mut map);
+            // }
         }
     }
     true
 }
 
-
-pub fn make_map(mut actors: &mut Vec<Object>) -> Map {
-    let mut map = vec![];
-    let actor_types = object::load::load_objects(
-        "data/objects/actors.json").unwrap();
-    let item_types = object::load::load_objects(
-        "data/objects/items.json").unwrap();
-    let wall_class = item_types.get_class("brick wall");
-    let concrete_floor = item_types.get_class("concrete floor");
+fn make_floor(floor_class: &object::ObjectClass,
+              wall_class: &object::ObjectClass) -> Floor {
+    let mut floor = vec![];
     for x in 0..FLOOR_WIDTH {
-        map.push(vec![]);
+        floor.push(vec![]);
         for y in 0..FLOOR_HEIGHT {
-            let mut wall_tile: Tile = Tile::new(&concrete_floor);
-            let mut brick_wall = wall_class.create_object();
-            brick_wall.set_pos(x, y);
-            wall_tile.items.push(brick_wall);
-            map[x as usize].push(wall_tile);
+            let mut wall_tile: Tile = Tile::new(&floor_class);
+            let mut wall = wall_class.create_object();
+            wall.set_pos(x, y);
+            wall_tile.items.push(wall);
+            floor[x as usize].push(wall_tile);
         }
     }
     let mut rooms = vec![];
     let mut bsp = Bsp::new_with_size(0, 0, FLOOR_WIDTH, FLOOR_HEIGHT);
     bsp.split_recursive(None, 3, ROOM_MIN_X, ROOM_MIN_Y, 1.25, 1.25);
     bsp.traverse(TraverseOrder::InvertedLevelOrder, |node| {
-        traverse_node(node, &mut rooms, &item_types, &concrete_floor, &mut map)
+        traverse_node(node, &mut rooms, &floor_class, &mut floor)
     });
-    let mut stairs = place_objects(1, &rooms, &mut map, &item_types, (0,0));
-    place_actors(1, &rooms, &mut map, &actor_types, &mut actors);
+
+    Floor{
+        rooms: rooms,
+        map: floor,
+    }
+}
+
+pub fn make_suburban_home(item_types: &object::load::ObjectTypes,
+                          actor_types: &object::load::ObjectTypes,
+                          mut actors: &mut Vec<Object>) -> BuildingPlan {
+    let wall_class = item_types.get_class("drywall");
+    let carpet = item_types.get_class("carpet");
+    let mut stairs = (0, 0);
+    let map: BuildingPlan = vec![];
+    for level in 2..rand::thread_rng().gen_range(2,3) {
+        let mut floor = make_floor(&carpet, &wall_class);
+        place_objects(level, &mut map, &item_types, &stairs);
+        place_actors(level, &mut map, &actor_types, &mut actors);
+        map.push(floor);
+    }
     map
+}
+
+pub fn make_map(mut actors: &mut Vec<Object>) -> BuildingPlan {
+    let actor_types = object::load::load_objects(
+        "data/objects/actors.json").unwrap();
+    let item_types = object::load::load_objects(
+        "data/objects/items.json").unwrap();
+    make_suburban_home(&item_types, &actor_types, actors)
 }

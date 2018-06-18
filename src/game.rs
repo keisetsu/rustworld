@@ -11,7 +11,7 @@ use ai;
 use consts;
 use keys;
 use object::{self, actor};
-use map::{self, Map};
+use map::{self, Map, BuildingPlan};
 use log;
 use log::MessageLog;
 use object::Object;
@@ -19,7 +19,7 @@ use ui;
 
 #[derive(RustcEncodable, RustcDecodable)]
 pub struct Game {
-    pub map: Map,
+    pub map: BuildingPlan,
     pub log: log::Messages,
 }
 
@@ -67,7 +67,7 @@ pub fn new_game(game_ui: &mut ui::Ui) -> (Vec<Object>, Game) {
         log: vec![],
     };
 
-    ui::initialize_fov(&game.map, &actors, game_ui);
+    ui::initialize_fov(&game.map[0].map, &actors, game_ui);
 
     game.log.info("Meow!");
 
